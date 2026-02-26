@@ -1500,32 +1500,36 @@ window.addEventListener("unhandledrejection", (e) => {
     }
   };
 
-  if (btnShareGenerated) btnShareGenerated.onclick = async () => {
-    if (!generatedUrl) return showModal("MyRePlayTV", "Generate first.");
-    const mode = (modeSel?.value || "full");
-    const name = mode === "replays" ? "ReplaysOnly" : "OriginalPlusReplays";
+  if (btnShareGenerated)
+    btnShareGenerated.onclick = async () => {
+      if (!generatedUrl) return showModal("MyRePlayTV", "Generate first.");
+      const mode = (modeSel?.value || "full");
+      const name = mode === "replays" ? "ReplaysOnly" : "OriginalPlusReplays";
 
-    try {
-      setLocked(true);
-      setStatus(tr().SharePreparing);
+      try {
+        setLocked(true);
+        setStatus(tr().SharePreparing);
 
-      const out = await ensureMp4Ready();
-      const ok = await shareFile(out.blob, out.mime, `MyRePlayTV_${name}.mp4`);
+        const out = await ensureMp4Ready();
 
-      if (!ok) {
-        showModal("MyRePlayTV", tr().ShareFail);
+        // Try native share first
+        const ok = await shareFile(out.blob, out.mime, `MyRePlayTV_${name}.mp4`);
+
+        // Fallback: if share fails on iOS, do a safe download flow
+        if (!ok) {
+          downloadBlobSafe(out.url, `MyRePlayTV_${name}_${Date.now()}.mp4`);
+        }
+      } catch (e) {
+        showModal(tr().ExportError, String(e?.message || e || "Share failed."));
+      } finally {
+        setLocked(false);
+        enableControls(!!originalUrl);
+        if (btnPreviewGenerated) btnPreviewGenerated.disabled = !generatedUrl;
+        if (btnDlGenerated) btnDlGenerated.disabled = !generatedUrl;
+        if (btnShareGenerated) btnShareGenerated.disabled = !generatedUrl;
+        refreshUsageUI();
       }
-    } catch (e) {
-      showModal(tr().ExportError, String(e?.message || e || "Share failed."));
-    } finally {
-      setLocked(false);
-      enableControls(!!originalUrl);
-      if (btnPreviewGenerated) btnPreviewGenerated.disabled = !generatedUrl;
-      if (btnDlGenerated) btnDlGenerated.disabled = !generatedUrl;
-      if (btnShareGenerated) btnShareGenerated.disabled = !generatedUrl;
-      refreshUsageUI();
-    }
-  };
+    };
 
   // ---------- Generate ----------
   if (btnGenerate) btnGenerate.onclick = async () => {
