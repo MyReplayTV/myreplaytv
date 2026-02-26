@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>MyRePlay • Legal</title>
+  <style>
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#070a10;color:#fff;padding:18px}
+    .card{max-width:980px;margin:0 auto;background:rgba(18,26,38,.86);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px}
+    h1{margin:0 0 10px;font-size:18px}
+    h2{margin:14px 0 8px;font-size:14px;color:#caa76a}
+    p,li{color:rgba(255,255,255,.78);line-height:1.55}
+    a{color:#caa76a;font-weight:900;text-decoration:none}
+    a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>MyRePlay — Legal (Demo)</h1>
+
+    <h2>1) Demo / Investor Preview</h2>
+    <p>This is a prototype demo. Features may change. No warranties.</p>
+
+    <h2>2) Local Processing</h2>
+    <p>Video processing happens locally in your browser/device. The server only serves the web page files.</p>
+
+    <h2>3) Copyright & Permissions</h2>
+    <p>You must own the rights or have permission to use any video/audio you upload, including optional music.</p>
+
+    <h2>4) Privacy</h2>
+    <p>MyRePlay does not intentionally collect personal data in this demo. Your files stay on your device while processing.</p>
+
+    <h2>5) Liability</h2>
+    <p>Use at your own risk. The demo is provided “as is”.</p>
+
+    <p style="margin-top:14px"><a href="./">← Back</a></p>
+  </div>
+</body>
+</html>

@@ -1,15 +1,123 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Node.js App</title>
-  <link rel="stylesheet" href="/style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>MyRePlayTV</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>Welcome to Your Node.js App</h1>
-    <p>Your server is up and running. Start building something great!</p>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="logo">MR</div>
+        <div class="titles">
+          <div class="name">MyRePlayTV</div>
+          <div id="tagline" class="tagline">TV-style replays in seconds</div>
+        </div>
+      </div>
+
+      <div class="topRight">
+        <select id="langSel" class="select">
+          <option value="en" selected>EN</option>
+          <option value="pt">PT</option>
+          <option value="el">GR</option>
+          <option value="es">ES</option>
+          <option value="it">IT</option>
+        </select>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card playerCard">
+        <div class="videoWrap">
+          <video id="player" playsinline controls></video>
+
+          <button id="recBtn" class="recBtn" style="display:none">● REC</button>
+
+          <div id="lockOverlay" class="lockOverlay" style="display:none">
+            <div class="lockBox">
+              <div id="lockTitle" class="lockTitle">Generating…</div>
+              <div id="lockSub" class="lockSub">Do not touch the video while processing</div>
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="primaryRow">
+          <button id="btnMark" class="btn primary big">⭐ Mark</button>
+          <button id="btnGenerate" class="btn accent big">Generate</button>
+        </div>
+
+        <div class="row">
+          <button id="btnUpload" class="btn">Import video</button>
+          <button id="btnCam" class="btn">Camera</button>
+
+          <button id="btnPreviewOriginal" class="btn ghost">Preview original</button>
+          <button id="btnPreviewGenerated" class="btn ghost" disabled>Preview generated</button>
+        </div>
+
+        <div class="row">
+          <button id="leadBtn" class="btn small">↩︎ 3s</button>
+          <button id="repBtn" class="btn small">⟲ 1×</button>
+
+          <select id="formatSel" class="select">
+            <option value="original" selected>Original</option>
+            <option value="vertical">Vertical 9:16</option>
+          </select>
+
+          <select id="modeSel" class="select">
+            <option value="full" selected>Original + Replays</option>
+            <option value="replays">Replays only</option>
+          </select>
+
+          <button id="musicBtn" class="btn small">♪ Music: Off</button>
+          <input id="musicInput" type="file" accept="audio/*" style="display:none" />
+        </div>
+
+        <div class="row">
+          <button id="btnShareGenerated" class="btn">Share generated</button>
+          <button id="btnDlGenerated" class="btn ghost" disabled>Download generated</button>
+          <button id="btnDlOriginal" class="btn ghost" disabled>Download original</button>
+        </div>
+
+        <div class="row">
+          <button id="btnClear" class="btn dangerGhost">Clear marks</button>
+          <button id="btnDelete" class="btn danger">Reset</button>
+        </div>
+
+        <div id="status" class="status">Ready. Import or Camera.</div>
+        <div id="hintText" class="hint">
+          Tip: Play the video, tap ⭐ Mark right after the moment. The app auto-syncs the motion peak.
+        </div>
+
+        <input id="fileInput" type="file" accept="video/*" style="display:none" />
+      </section>
+
+      <section class="card marksCard">
+        <div class="marksHeader">
+          <div id="marksTitle" class="marksTitle">Marks</div>
+        </div>
+        <div id="marksList" class="marksList"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <div class="pill">
+        <b>FREE DEMO</b> — 2 replays/month • Watermark ON
+      </div>
+    </footer>
   </div>
+
+  <!-- Simple modal -->
+  <div id="modalBg" class="modalBg" style="display:none">
+    <div class="modal">
+      <div id="mTitle" class="mTitle">MyRePlayTV</div>
+      <div id="mBody" class="mBody">…</div>
+      <button id="mOk" class="btn accent">OK</button>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
 </body>
 </html>
