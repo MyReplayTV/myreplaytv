@@ -1210,18 +1210,30 @@ window.addEventListener("unhandledrejection", (e) => {
 
   async function pickRecorder(stream) {
     const tries = [
-      { mime: "video/webm;codecs=vp9,opus", bps: VIDEO_BPS },
-      { mime: "video/webm;codecs=vp8,opus", bps: VIDEO_BPS },
-      { mime: "video/webm", bps: VIDEO_BPS },
+      { mime: "video/mp4;codecs=h264,aac" },
+      { mime: "video/mp4" },
+      { mime: "video/webm;codecs=vp9,opus" },
+      { mime: "video/webm;codecs=vp8,opus" }
     ];
+
     for (const t of tries) {
       try {
         if (t.mime && MediaRecorder.isTypeSupported?.(t.mime)) {
-          return { rec: new MediaRecorder(stream, { mimeType: t.mime, videoBitsPerSecond: t.bps }), mime: t.mime };
+          return {
+            rec: new MediaRecorder(stream, {
+              mimeType: t.mime,
+              videoBitsPerSecond: 8_000_000
+            }),
+            mime: t.mime
+          };
         }
-      } catch { }
+      } catch {}
     }
-    return { rec: new MediaRecorder(stream), mime: "video/webm" };
+
+    return {
+      rec: new MediaRecorder(stream),
+      mime: "video/webm"
+    };
   }
   async function generateTV(mode) {
     const vw = player.videoWidth || 1280;
@@ -1392,6 +1404,10 @@ window.addEventListener("unhandledrejection", (e) => {
     forceAudioOnForPreview();
     forceInlineVideo();
 
+    generatedBlob = blob;
+    generatedUrl = URL.createObjectURL(blob);
+    generatedMime = mime;
+
     return blob;
   }
 
@@ -1439,22 +1455,15 @@ window.addEventListener("unhandledrejection", (e) => {
   }
 
   async function ensureMp4Ready() {
-    if (generatedMp4Blob && generatedMp4Url) return { blob: generatedMp4Blob, url: generatedMp4Url, mime: "video/mp4" };
-    if (!generatedWebmBlob) throw new Error("No generated file.");
-
-    setStatus(tr().ServerMp4);
-    if (lockSub) lockSub.textContent = tr().ServerMp4Slow;
-
-    try {
-      const mp4 = await transcodeToMp4(generatedWebmBlob);
-      generatedMp4Blob = mp4;
-      generatedMp4Url = blobToUrl(mp4);
-      return { blob: generatedMp4Blob, url: generatedMp4Url, mime: "video/mp4" };
-    } catch (e) {
-      console.warn("MP4 transcode failed:", e);
-      showModal("MyRePlayTV", tr().Mp4Fallback);
-      return { blob: generatedWebmBlob, url: generatedWebmUrl, mime: generatedMime || "video/webm" };
+    if (!generatedBlob || !generatedUrl) {
+      throw new Error("No generated file.");
     }
+
+    return {
+      blob: generatedBlob,
+      url: generatedUrl,
+      mime: generatedMime || "video/mp4"
+    };
   }
 
   async function shareFile(blob, mime, filename) {
