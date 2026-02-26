@@ -13,11 +13,11 @@ const PORT = process.env.PORT || 3000;
 // CONFIG
 // ================================
 const MAX_EXPORTS_PER_MONTH = 5;
-const MAX_FILE_MB = 200; // pode subir, mas cuidado com custo/tempo
+const MAX_FILE_MB = 200;
 const TMP_DIR = path.join(os.tmpdir(), "myreplaytv");
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
-// In-memory store (demo-friendly, low cost). Reseta quando redeploy/restart.
+// In-memory store (demo-friendly). Reseta quando redeploy/restart.
 const usageStore = {}; // token -> { month: "YYYY-MM", used: number }
 
 // ================================
@@ -30,18 +30,24 @@ function currentMonthKey() {
 }
 
 function getTokenFromReq(req) {
-  // aceita os 2 formatos (front antigo e novo)
+  // aceita vários formatos e também querystring (debug)
   return (
     req.headers["x-mrp-token"] ||
     req.headers["x-demo-token"] ||
     req.headers["x_mrp_token"] ||
-    req.headers["x_demo_token"]
+    req.headers["x_demo_token"] ||
+    req.query?.token ||
+    req.query?.demo_token ||
+    req.query?.mrp_token
   );
 }
 
 function ensureToken(token) {
   if (!token) return null;
-  if (!usageStore[token]) usageStore[token] = { month: currentMonthKey(), used: 0 };
+
+  if (!usageStore[token]) {
+    usageStore[token] = { month: currentMonthKey(), used: 0 };
+  }
 
   // reset automático por mês
   const mk = currentMonthKey();
@@ -56,14 +62,21 @@ function usagePayload(token) {
   const st = ensureToken(token);
   if (!st) return null;
   const left = Math.max(0, MAX_EXPORTS_PER_MONTH - st.used);
-  return { token, limit: MAX_EXPORTS_PER_MONTH, used: st.used, month: st.month, left };
+  // mantemos também "max" porque seu front usa res.data.max
+  return {
+    token,
+    limit: MAX_EXPORTS_PER_MONTH,
+    max: MAX_EXPORTS_PER_MONTH,
+    used: st.used,
+    month: st.month,
+    left,
+  };
 }
 
 // ================================
 // STATIC FRONTEND
 // ================================
 app.use(express.static(path.join(__dirname, "public")));
-
 app.get("/health", (_req, res) => res.status(200).send("ok"));
 
 // ================================
@@ -81,6 +94,7 @@ app.get("/api/usage", (req, res) => {
 
   const payload = usagePayload(token);
   if (!payload) return res.status(401).json({ error: "Invalid token" });
+
   res.json(payload);
 });
 
@@ -124,8 +138,8 @@ app.post("/api/transcode", upload.single("file"), async (req, res) => {
     const st = ensureToken(token);
     if (!st) return res.status(401).json({ error: "Invalid token" });
 
-    // Aqui NÃO consumimos export (o front já consumiu no Generate).
-    // Só bloqueia se quiser também impedir MP4 quando acabou.
+    // Não consome export aqui (o front consome no Generate).
+    // Só bloqueia se quiser impedir MP4 quando estourar.
     if (st.used > MAX_EXPORTS_PER_MONTH) {
       return res.status(403).json({ error: "Monthly limit reached" });
     }
@@ -138,20 +152,30 @@ app.post("/api/transcode", upload.single("file"), async (req, res) => {
     // preset bom p/ WhatsApp/IG + compat iPhone
     const ffmpegArgs = [
       "-y",
-      "-i", inputPath,
+      "-i",
+      inputPath,
 
       // vídeo
-      "-c:v", "libx264",
-      "-preset", "veryfast",
-      "-crf", "23",
-      "-pix_fmt", "yuv420p",
-      "-movflags", "+faststart",
-      "-profile:v", "baseline",
-      "-level", "3.0",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-crf",
+      "23",
+      "-pix_fmt",
+      "yuv420p",
+      "-movflags",
+      "+faststart",
+      "-profile:v",
+      "baseline",
+      "-level",
+      "3.0",
 
       // áudio (se tiver)
-      "-c:a", "aac",
-      "-b:a", "128k",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "128k",
 
       outputPath,
     ];
@@ -162,10 +186,14 @@ app.post("/api/transcode", upload.single("file"), async (req, res) => {
     ff.stderr.on("data", (d) => (stderr += d.toString()));
 
     ff.on("close", (code) => {
-      try { fs.unlinkSync(inputPath); } catch {}
+      try {
+        fs.unlinkSync(inputPath);
+      } catch {}
 
       if (code !== 0) {
-        try { fs.unlinkSync(outputPath); } catch {}
+        try {
+          fs.unlinkSync(outputPath);
+        } catch {}
         console.error("FFmpeg failed:", stderr.slice(-1500));
         return res.status(500).json({ error: "Transcode failed" });
       }
@@ -177,7 +205,9 @@ app.post("/api/transcode", upload.single("file"), async (req, res) => {
       stream.pipe(res);
 
       stream.on("close", () => {
-        try { fs.unlinkSync(outputPath); } catch {}
+        try {
+          fs.unlinkSync(outputPath);
+        } catch {}
       });
     });
   } catch (err) {
@@ -196,6 +226,6 @@ app.get("*", (_req, res) => {
 // ================================
 // START
 // ================================
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("MyRePlayTV running on port", PORT);
 });

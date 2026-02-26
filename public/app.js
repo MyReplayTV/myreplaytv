@@ -336,7 +336,6 @@ window.addEventListener("unhandledrejection", (e) => {
 
   let lang = (langSel?.value || "en");
   function tr() { return STR[lang] || STR.en; }
-
   function ensureUsageLine() {
     if (usageLine) return usageLine;
     // Create a subtle line under status if not present in HTML
@@ -396,12 +395,13 @@ window.addEventListener("unhandledrejection", (e) => {
     };
   }
   applyLang();
+
   // ---------- State ----------
   let marks = [];
   let leadIn = 3;   // 1..10
   let repeats = 1;  // 1..3
 
-  // Limits (Demo) — front limit remains 2 minutes as combinado
+  // Limits (Demo)
   const MAX_SECONDS = 120;
 
   // Replay behavior
@@ -415,21 +415,21 @@ window.addEventListener("unhandledrejection", (e) => {
   const PEAK_LEAD = 0.14;
 
   // Cinema tuning (premium feel)
-  const ZOOM_MAX = 1.22;      // slightly more “TV”
+  const ZOOM_MAX = 1.22;
   const ZOOM_EASE_MS = 320;
   const FADE_MS = 120;
   const ADVANCE = 0.08;
   const REC_WARMUP_MS = 420;
 
-  // Export quality (premium)
+  // Export quality
   const REC_TIMESLICE = 500;
-  const VIDEO_BPS = 12_000_000; // keep premium quality
+  const VIDEO_BPS = 12_000_000;
   const FPS_HINT = 30;
 
   // URLs
   let originalUrl = null;
 
-  // Generated: we keep WebM fast preview + optional MP4 cache for WhatsApp share
+  // Generated: WebM preview + optional MP4 cache
   let generatedUrl = null;
   let generatedBlob = null;
   let generatedMime = "video/webm";
@@ -464,15 +464,13 @@ window.addEventListener("unhandledrejection", (e) => {
   let camZoomSupported = false;
 
   function setStatus(t) { if (status) status.textContent = t; }
-
   // ---------- DEMO / PREMIUM COUNTER ----------
-  const DEMO_MAX_EXPORTS = 5; // free: 5 per month (as combinado)
+  const DEMO_MAX_EXPORTS = 5;
   const TOKEN_KEY = "mrp_demo_token_v1";
 
   function getToken() {
     let t = localStorage.getItem(TOKEN_KEY);
     if (t) return t;
-    // local-only token (no login). backend also uses this token for counting.
     t = "mrp_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
     localStorage.setItem(TOKEN_KEY, t);
     return t;
@@ -484,8 +482,8 @@ window.addEventListener("unhandledrejection", (e) => {
 
   async function apiJSON(url, opts = {}) {
     const headers = { ...(opts.headers || {}) };
-    // send token so backend can count
     headers["x-demo-token"] = DEMO_TOKEN;
+    headers["x-mrp-token"] = DEMO_TOKEN; // extra compat
     const r = await fetch(url, { ...opts, headers });
     let data = null;
     try { data = await r.json(); } catch {}
@@ -493,14 +491,12 @@ window.addEventListener("unhandledrejection", (e) => {
   }
 
   async function fetchUsage() {
-    // backend may or may not have these endpoints; we fall back gracefully
-    // expected: { month, max, used, left }
     const res = await apiJSON("/api/usage");
     if (res.ok && res.data) {
       usage = {
         ok: true,
         month: res.data.month || null,
-        max: Number(res.data.max ?? DEMO_MAX_EXPORTS),
+        max: Number(res.data.max ?? res.data.limit ?? DEMO_MAX_EXPORTS),
         used: Number(res.data.used ?? 0),
         left: Number(res.data.left ?? Math.max(0, DEMO_MAX_EXPORTS - (res.data.used || 0))),
       };
@@ -508,7 +504,7 @@ window.addEventListener("unhandledrejection", (e) => {
       return;
     }
 
-    // fallback: no server counter => local monthly counter
+    // fallback local
     const key = "mrp_local_usage_" + new Date().toISOString().slice(0, 7);
     const used = Number(localStorage.getItem(key) || "0");
     usage = { ok: true, month: key.slice(-7), max: DEMO_MAX_EXPORTS, used, left: Math.max(0, DEMO_MAX_EXPORTS - used) };
@@ -516,13 +512,12 @@ window.addEventListener("unhandledrejection", (e) => {
   }
 
   async function consumeOneExport() {
-    // Try server-side consume first (so it can protect costs)
     const res = await apiJSON("/api/usage/consume", { method: "POST" });
     if (res.ok && res.data) {
       usage = {
         ok: true,
         month: res.data.month || null,
-        max: Number(res.data.max ?? DEMO_MAX_EXPORTS),
+        max: Number(res.data.max ?? res.data.limit ?? DEMO_MAX_EXPORTS),
         used: Number(res.data.used ?? 0),
         left: Number(res.data.left ?? Math.max(0, DEMO_MAX_EXPORTS - (res.data.used || 0))),
       };
@@ -553,6 +548,7 @@ window.addEventListener("unhandledrejection", (e) => {
   function isUsageBlocked() {
     return usageLoaded && usage.left <= 0;
   }
+
   // -------- LOCK: blocks interactions while generating --------
   function setLocked(on) {
     if (lockOverlay) lockOverlay.style.display = on ? "flex" : "none";
@@ -601,7 +597,6 @@ window.addEventListener("unhandledrejection", (e) => {
     if (btnDlGenerated) btnDlGenerated.disabled = true;
     if (btnShareGenerated) btnShareGenerated.disabled = true;
   }
-
   function clearGenerated() {
     if (generatedUrl) URL.revokeObjectURL(generatedUrl);
     if (generatedWebmUrl) URL.revokeObjectURL(generatedWebmUrl);
@@ -668,6 +663,7 @@ window.addEventListener("unhandledrejection", (e) => {
     musicEl.src = musicUrl;
     updateBadges();
   };
+
   function stopCamera() {
     if (!cameraOn) return;
     if (camRecorder) { try { camRecorder.stop(); } catch { } }
@@ -718,7 +714,6 @@ window.addEventListener("unhandledrejection", (e) => {
     if (!f) return;
     setOriginalFromBlob(f);
   };
-
   // ---------- Camera ----------
   async function startCamera() {
     if (cameraOn) return;
@@ -982,6 +977,7 @@ window.addEventListener("unhandledrejection", (e) => {
     forceInlineVideo();
     player.play().catch(() => { });
   };
+
   // ===== Motion peak search =====
   const tmp = document.createElement("canvas");
   const tctx = tmp.getContext("2d", { willReadFrequently: true });
@@ -1039,7 +1035,6 @@ window.addEventListener("unhandledrejection", (e) => {
     }
     return clamp(bestT - PEAK_LEAD, 0, dur);
   }
-
   // ===== Export drawing =====
   function drawWatermark(ctx, w) {
     const text = "MyRePlayTV";
@@ -1063,9 +1058,6 @@ window.addEventListener("unhandledrejection", (e) => {
   }
 
   function computeCanvasSize(vw, vh, format) {
-    // Premium quality but not insane cost:
-    // - original: keep source size (best) but if source is huge, cap to 1920 width
-    // - vertical: keep 1080x1920
     if (format === "vertical") return { cw: 1080, ch: 1920 };
     const w = vw || 1280, h = vh || 720;
     if (w > 1920) {
@@ -1231,7 +1223,6 @@ window.addEventListener("unhandledrejection", (e) => {
     }
     return { rec: new MediaRecorder(stream), mime: "video/webm" };
   }
-
   async function generateTV(mode) {
     const vw = player.videoWidth || 1280;
     const vh = player.videoHeight || 720;
@@ -1403,12 +1394,22 @@ window.addEventListener("unhandledrejection", (e) => {
 
     return blob;
   }
+
   // Railway: transcode to MP4 (WhatsApp/IG friendly)
   async function transcodeToMp4(webmBlob) {
     const fd = new FormData();
     fd.append("file", webmBlob, "input.webm");
 
-    const r = await fetch("/api/transcode", { method: "POST", body: fd });
+    // ✅ FIX CRÍTICO: mandar token no transcode (senão dá "Missing token")
+    const r = await fetch("/api/transcode", {
+      method: "POST",
+      body: fd,
+      headers: {
+        "x-demo-token": DEMO_TOKEN,
+        "x-mrp-token": DEMO_TOKEN,
+      },
+    });
+
     if (!r.ok) {
       let msg = "Server error";
       try { msg = (await r.json())?.error || msg; } catch {}
@@ -1438,10 +1439,7 @@ window.addEventListener("unhandledrejection", (e) => {
   }
 
   async function ensureMp4Ready() {
-    // If already mp4, ok
     if (generatedMp4Blob && generatedMp4Url) return { blob: generatedMp4Blob, url: generatedMp4Url, mime: "video/mp4" };
-
-    // If server endpoint is down, we still allow WebM preview
     if (!generatedWebmBlob) throw new Error("No generated file.");
 
     setStatus(tr().ServerMp4);
@@ -1455,19 +1453,15 @@ window.addEventListener("unhandledrejection", (e) => {
     } catch (e) {
       console.warn("MP4 transcode failed:", e);
       showModal("MyRePlayTV", tr().Mp4Fallback);
-      // fallback: return webm
       return { blob: generatedWebmBlob, url: generatedWebmUrl, mime: generatedMime || "video/webm" };
     }
   }
 
   async function shareFile(blob, mime, filename) {
     const file = new File([blob], filename, { type: mime });
-
-    // iOS Safari sometimes fails if canShare returns false - still try navigator.share
     if (navigator.share) {
       try {
         if (navigator.canShare && !navigator.canShare({ files: [file] })) {
-          // if it can't share files, fall back to download
           return false;
         }
         await navigator.share({ title: "MyRePlayTV", text: "TV-style replay made with MyRePlayTV", files: [file] });
@@ -1479,7 +1473,6 @@ window.addEventListener("unhandledrejection", (e) => {
     }
     return false;
   }
-
   if (btnDlOriginal) btnDlOriginal.onclick = () => {
     if (!originalUrl) return showModal("MyRePlayTV", "No original video.");
     downloadBlobSafe(originalUrl, `MyRePlayTV_Original_${Date.now()}.mp4`);
@@ -1490,7 +1483,6 @@ window.addEventListener("unhandledrejection", (e) => {
     const mode = (modeSel?.value || "full");
     const name = mode === "replays" ? "ReplaysOnly" : "OriginalPlusReplays";
 
-    // Premium behavior: download MP4 (WhatsApp friendly) but only when user asks (faster generation)
     try {
       setLocked(true);
       setStatus(tr().SharePreparing);
@@ -1534,158 +1526,155 @@ window.addEventListener("unhandledrejection", (e) => {
       refreshUsageUI();
     }
   };
-    // ---------- Generate ----------
-    if (btnGenerate) btnGenerate.onclick = async () => {
-      if (window.__MRP_LOCKED__) return;
-      if (!player.duration) return showModal("MyRePlayTV", tr().NoVideo);
-      if (marks.length === 0) return showModal("MyRePlayTV", tr().NeedMark);
-      if ((player.duration || 0) > MAX_SECONDS + 0.5) return showModal("MyRePlayTV", tr().TooLong);
 
-      if (isUsageBlocked()) {
+  // ---------- Generate ----------
+  if (btnGenerate) btnGenerate.onclick = async () => {
+    if (window.__MRP_LOCKED__) return;
+    if (!player.duration) return showModal("MyRePlayTV", tr().NoVideo);
+    if (marks.length === 0) return showModal("MyRePlayTV", tr().NeedMark);
+    if ((player.duration || 0) > MAX_SECONDS + 0.5) return showModal("MyRePlayTV", tr().TooLong);
+
+    if (isUsageBlocked()) {
+      showModal(tr().UpgradeTitle, tr().UsageBlocked + "\n\n" + tr().UpgradeBody);
+      return;
+    }
+
+    const mode = (modeSel?.value || "full");
+
+    try {
+      setLocked(true);
+      setStatus(tr().Gen);
+
+      clearGenerated();
+
+      // consume 1 export BEFORE heavy work
+      const ok = await consumeOneExport();
+      await fetchUsage();
+      refreshUsageUI();
+
+      if (!ok) {
         showModal(tr().UpgradeTitle, tr().UsageBlocked + "\n\n" + tr().UpgradeBody);
+        setStatus(tr().Ready);
         return;
       }
 
-      const mode = (modeSel?.value || "full");
+      // 1) Generate FAST preview in-browser (WebM)
+      const webmBlob = await generateTV(mode);
 
-      try {
-        setLocked(true);
-        setStatus(tr().Gen);
+      generatedWebmBlob = webmBlob;
+      generatedMime = generatedMime || "video/webm";
+      generatedWebmUrl = URL.createObjectURL(webmBlob);
 
-        clearGenerated();
+      // Set generated as WebM (instant preview)
+      generatedBlob = webmBlob;
+      generatedUrl = generatedWebmUrl;
 
-        // consume 1 export BEFORE doing heavy work (cost protection)
-        const ok = await consumeOneExport();
-        await fetchUsage();
-        refreshUsageUI();
+      if (btnPreviewGenerated) btnPreviewGenerated.disabled = false;
+      if (btnDlGenerated) btnDlGenerated.disabled = false;
+      if (btnShareGenerated) btnShareGenerated.disabled = false;
 
-        if (!ok) {
-          showModal(tr().UpgradeTitle, tr().UsageBlocked + "\n\n" + tr().UpgradeBody);
-          setStatus(tr().Ready);
-          return;
-        }
-
-        // 1) Generate FAST preview in-browser (WebM)
-        const webmBlob = await generateTV(mode);
-
-        generatedWebmBlob = webmBlob;
-        generatedMime = generatedMime || "video/webm";
-        generatedWebmUrl = URL.createObjectURL(webmBlob);
-
-        // Set generated as WebM (instant preview)
-        generatedBlob = webmBlob;
-        generatedUrl = generatedWebmUrl;
-
-        if (btnPreviewGenerated) btnPreviewGenerated.disabled = false;
-        if (btnDlGenerated) btnDlGenerated.disabled = false;
-        if (btnShareGenerated) btnShareGenerated.disabled = false;
-
-        player.pause();
-        player.srcObject = null;
-        player.playbackRate = 1;
-        player.src = generatedUrl;
-        player.controls = true;
-        player.load();
-        forceAudioOnForPreview();
-        forceInlineVideo();
-        await player.play().catch(() => { });
-
-        setStatus(tr().Done);
-
-        // MP4 will be produced ONLY when user presses Share/Download (faster + cheaper)
-        // Nothing else here.
-      } catch (e) {
-        console.error(e);
-        showModal(tr().ExportError, String(e?.message || e || "Try shorter video or fewer marks."));
-        setStatus(tr().Ready);
-        // If generation failed after consume, we don't auto-refund here (backend can handle if you add refund later)
-      } finally {
-        setLocked(false);
-        enableControls(!!originalUrl);
-        if (btnPreviewGenerated) btnPreviewGenerated.disabled = !generatedUrl;
-        if (btnDlGenerated) btnDlGenerated.disabled = !generatedUrl;
-        if (btnShareGenerated) btnShareGenerated.disabled = !generatedUrl;
-        refreshUsageUI();
-      }
-    };
-
-    // ---------- Back to edit ----------
-    (function addBackToEditPatch() {
-      try {
-        let backBtn = document.getElementById("btnBackToEdit");
-        const refBtn = document.getElementById("btnPreviewGenerated") || document.getElementById("btnGenerate");
-
-        if (!backBtn) {
-          backBtn = document.createElement("button");
-          backBtn.id = "btnBackToEdit";
-          backBtn.className = "btn ghost";
-          backBtn.textContent = tr().BackToEdit;
-          backBtn.disabled = true;
-          if (refBtn && refBtn.parentElement) refBtn.insertAdjacentElement("afterend", backBtn);
-          else document.body.appendChild(backBtn);
-        }
-
-        const goBack = async () => {
-          if (!originalUrl) return;
-
-          try { player.pause(); } catch { }
-          try { stopExportAudio(); } catch { }
-          try { musicEl.pause(); } catch { }
-
-          try { clearGenerated(); } catch { }
-
-          marks = [];
-          try { renderMarks(); } catch { }
-
-          try {
-            player.srcObject = null;
-            player.playbackRate = 1;
-            player.src = originalUrl;
-            player.controls = true;
-            player.load();
-          } catch { }
-
-          try {
-            exportAudioEl.pause();
-            exportAudioEl.src = originalUrl;
-            exportAudioEl.load();
-          } catch { }
-
-          try { enableControls(true); } catch { }
-          try { forceAudioOnForPreview(); } catch { }
-          forceInlineVideo();
-
-          if (btnPreviewGenerated) btnPreviewGenerated.disabled = true;
-          if (btnDlGenerated) btnDlGenerated.disabled = true;
-          if (btnShareGenerated) btnShareGenerated.disabled = true;
-
-          backBtn.disabled = true;
-          setStatus("Back to edit: Original (marks cleared)");
-          player.play().catch(() => { });
-        };
-
-        backBtn.onclick = goBack;
-
-        // Enable Back when generated exists
-        const tick = () => {
-          backBtn.textContent = tr().BackToEdit;
-          backBtn.disabled = !generatedUrl;
-        };
-        setInterval(tick, 400);
-      } catch (e) {
-        console.warn("BackToEdit patch failed:", e);
-      }
-    })();
-
-    // ---------- Start ----------
-    (async function init() {
-      enableControls(false);
-      renderMarks();
-      setStatus(tr().Ready);
+      player.pause();
+      player.srcObject = null;
+      player.playbackRate = 1;
+      player.src = generatedUrl;
+      player.controls = true;
+      player.load();
+      forceAudioOnForPreview();
       forceInlineVideo();
+      await player.play().catch(() => { });
 
-      await fetchUsage();
+      setStatus(tr().Done);
+    } catch (e) {
+      console.error(e);
+      showModal(tr().ExportError, String(e?.message || e || "Try shorter video or fewer marks."));
+      setStatus(tr().Ready);
+    } finally {
+      setLocked(false);
+      enableControls(!!originalUrl);
+      if (btnPreviewGenerated) btnPreviewGenerated.disabled = !generatedUrl;
+      if (btnDlGenerated) btnDlGenerated.disabled = !generatedUrl;
+      if (btnShareGenerated) btnShareGenerated.disabled = !generatedUrl;
       refreshUsageUI();
-    })();
+    }
+  };
+
+  // ---------- Back to edit ----------
+  (function addBackToEditPatch() {
+    try {
+      let backBtn = document.getElementById("btnBackToEdit");
+      const refBtn = document.getElementById("btnPreviewGenerated") || document.getElementById("btnGenerate");
+
+      if (!backBtn) {
+        backBtn = document.createElement("button");
+        backBtn.id = "btnBackToEdit";
+        backBtn.className = "btn ghost";
+        backBtn.textContent = tr().BackToEdit;
+        backBtn.disabled = true;
+        if (refBtn && refBtn.parentElement) refBtn.insertAdjacentElement("afterend", backBtn);
+        else document.body.appendChild(backBtn);
+      }
+
+      const goBack = async () => {
+        if (!originalUrl) return;
+
+        try { player.pause(); } catch { }
+        try { stopExportAudio(); } catch { }
+        try { musicEl.pause(); } catch { }
+
+        try { clearGenerated(); } catch { }
+
+        marks = [];
+        try { renderMarks(); } catch { }
+
+        try {
+          player.srcObject = null;
+          player.playbackRate = 1;
+          player.src = originalUrl;
+          player.controls = true;
+          player.load();
+        } catch { }
+
+        try {
+          exportAudioEl.pause();
+          exportAudioEl.src = originalUrl;
+          exportAudioEl.load();
+        } catch { }
+
+        try { enableControls(true); } catch { }
+        try { forceAudioOnForPreview(); } catch { }
+        forceInlineVideo();
+
+        if (btnPreviewGenerated) btnPreviewGenerated.disabled = true;
+        if (btnDlGenerated) btnDlGenerated.disabled = true;
+        if (btnShareGenerated) btnShareGenerated.disabled = true;
+
+        backBtn.disabled = true;
+        setStatus("Back to edit: Original (marks cleared)");
+        player.play().catch(() => { });
+      };
+
+      backBtn.onclick = goBack;
+
+      // Enable Back when generated exists
+      const tick = () => {
+        backBtn.textContent = tr().BackToEdit;
+        backBtn.disabled = !generatedUrl;
+      };
+      setInterval(tick, 400);
+    } catch (e) {
+      console.warn("BackToEdit patch failed:", e);
+    }
+  })();
+
+  // ---------- Start ----------
+  (async function init() {
+    enableControls(false);
+    renderMarks();
+    setStatus(tr().Ready);
+    forceInlineVideo();
+
+    await fetchUsage();
+    refreshUsageUI();
+  })();
 
   })();
