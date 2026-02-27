@@ -409,9 +409,9 @@ window.addEventListener("unhandledrejection", (e) => {
   const SLOW_RATE = 0.55;
 
   // Auto-sync peak (motion)
-  const PEAK_LOOKBACK = 1.02;
+  const PEAK_LOOKBACK = 0.70;
   const PEAK_LOOKAHEAD = 0.12;
-  const PEAK_STEP = 0.04;
+  const PEAK_STEP = 0.08;
   const PEAK_LEAD = 0.14;
 
   // Cinema tuning (premium feel)
@@ -424,7 +424,7 @@ window.addEventListener("unhandledrejection", (e) => {
   // Export quality
   const REC_TIMESLICE = 500;
   const VIDEO_BPS = 12_000_000;
-  const FPS_HINT = 30;
+  const FPS_HINT = 24;
 
   // URLs
   let originalUrl = null;
@@ -1059,12 +1059,13 @@ window.addEventListener("unhandledrejection", (e) => {
 
   function computeCanvasSize(vw, vh, format) {
     if (format === "vertical") return { cw: 1080, ch: 1920 };
-    const w = vw || 1280, h = vh || 720;
-    if (w > 1920) {
-      const scale = 1920 / w;
-      return { cw: 1920, ch: Math.round(h * scale) };
-    }
-    return { cw: w, ch: h };
+
+    // força 1080p landscape (1920x1080) quando o vídeo for landscape
+    const isLandscape = (vw || 1280) >= (vh || 720);
+    if (isLandscape) return { cw: 1920, ch: 1080 };
+
+    // se for portrait e formato original, mantém 1080x1920
+    return { cw: 1080, ch: 1920 };
   }
 
   function drawFrame(ctx, canvasW, canvasH, zoomMode) {
@@ -1336,9 +1337,15 @@ window.addEventListener("unhandledrejection", (e) => {
     if (mode !== "replays") {
       setStatus("Recording original…");
       exporter.normal(); exporter.setFade(0);
-      player.currentTime = 0;
-      await waitNear(0);
-      await audioNormal(0);
+
+      // ✅ iOS fix: evita “picos” no início do original
+      const START = Math.min(0.25, Math.max(0, (player.duration || 0) - 0.3));
+      player.playbackRate = 1;
+
+      player.currentTime = START;
+      await waitNear(START);
+      await audioNormal(START);
+
       await playTo(player.duration);
       stopExportAudio();
     }
