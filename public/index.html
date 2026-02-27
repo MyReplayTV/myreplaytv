@@ -30,8 +30,8 @@
 
     <main class="grid">
       <section class="card playerCard">
-        <div class="videoWrap">
-          <video id="player" playsinline controls></video>
+        <div id="videoWrap" class="videoWrap">
+          <video id="player" playsinline webkit-playsinline controls></video>
 
           <button id="recBtn" class="recBtn" style="display:none">● REC</button>
 
@@ -45,7 +45,7 @@
         </div>
 
         <div class="primaryRow">
-            <button id="btnMark" type="button" class="btn primary big">⭐ Mark</button>
+          <button id="btnMark" type="button" class="btn primary big">⭐ Mark</button>
           <button id="btnGenerate" type="button" class="btn accent big">Generate</button>
         </div>
 
@@ -53,13 +53,13 @@
           <button id="btnUpload" type="button" class="btn">Import video</button>
           <button id="btnCam" type="button" class="btn">Camera</button>
 
-          <button id="btnPreviewOriginal" class="btn ghost">Preview original</button>
-          <button id="btnPreviewGenerated" class="btn ghost" disabled>Preview generated</button>
+          <button id="btnPreviewOriginal" type="button" class="btn ghost">Preview original</button>
+          <button id="btnPreviewGenerated" type="button" class="btn ghost" disabled>Preview generated</button>
         </div>
 
         <div class="row">
-          <button id="leadBtn" class="btn small">↩︎ 3s</button>
-          <button id="repBtn" class="btn small">⟲ 1×</button>
+          <button id="leadBtn" type="button" class="btn small">↩︎ 3s</button>
+          <button id="repBtn" type="button" class="btn small">⟲ 1×</button>
 
           <select id="formatSel" class="select">
             <option value="original" selected>Original</option>
@@ -71,22 +71,26 @@
             <option value="replays">Replays only</option>
           </select>
 
-          <button id="musicBtn" class="btn small">♪ Music: Off</button>
+          <button id="musicBtn" type="button" class="btn small">♪ Music: Off</button>
           <input id="musicInput" type="file" accept="audio/*" style="display:none" />
         </div>
 
+        <!-- ✅ SHARE -->
         <div class="row">
-          <button id="btnShareGenerated" class="btn">Share generated</button>
-          <button id="btnDlGenerated" class="btn ghost" disabled>Download generated</button>
-          <button id="btnDlOriginal" class="btn ghost" disabled>Download original</button>
+          <button id="btnShareOriginal" type="button" class="btn ghost" disabled>Share original</button>
+          <button id="btnShareGenerated" type="button" class="btn" disabled>Share generated</button>
         </div>
 
         <div class="row">
-          <button id="btnClear" class="btn dangerGhost">Clear marks</button>
-          <button id="btnDelete" class="btn danger">Reset</button>
+          <button id="btnClear" type="button" class="btn dangerGhost">Clear marks</button>
+          <button id="btnDelete" type="button" class="btn danger">Reset</button>
         </div>
 
         <div id="status" class="status">Ready. Import or Camera.</div>
+        <div id="usageLine" class="hint" style="text-align:center;opacity:.86;margin-top:6px;font-size:12px;">
+          Free demo: usage counter loading…
+        </div>
+
         <div id="hintText" class="hint">
           Tip: Play the video, tap ⭐ Mark right after the moment. The app auto-syncs the motion peak.
         </div>
@@ -109,12 +113,12 @@
     </footer>
   </div>
 
-  <!-- Simple modal -->
+  <!-- Modal -->
   <div id="modalBg" class="modalBg" style="display:none">
     <div class="modal">
       <div id="mTitle" class="mTitle">MyRePlayTV</div>
       <div id="mBody" class="mBody">…</div>
-      <button id="mOk" class="btn accent">OK</button>
+      <button id="mOk" type="button" class="btn accent">OK</button>
     </div>
   </div>
 
