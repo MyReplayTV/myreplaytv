@@ -703,15 +703,30 @@ window.addEventListener("unhandledrejection", (e) => {
   }
 
   // ---------- IMPORT ----------
-  if (btnUpload) btnUpload.onclick = () => {
-    if (!fileInput) return;
+  if (btnUpload) btnUpload.onclick = (e) => {
+    // ✅ evita qualquer comportamento de navegação/submit no iOS
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+
+    if (!fileInput) return false;
+
+    // garante que não tem "submit" nem nada estranho
+    try { btnUpload.type = "button"; } catch {}
+
+    // reset e abre picker
     fileInput.value = "";
     fileInput.click();
+
+    return false;
   };
 
-  if (fileInput) fileInput.onchange = () => {
+  if (fileInput) fileInput.onchange = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+
     const f = fileInput.files?.[0];
     if (!f) return;
+
     setOriginalFromBlob(f);
   };
   // ---------- Camera ----------
