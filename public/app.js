@@ -96,7 +96,7 @@ window.addEventListener("unhandledrejection", (e) => {
     player.volume = 1;
     player.removeAttribute("muted");
   }
-  forceInlineVideo();
+  
   // ---------- Language ----------
   const STR = {
     en: {
@@ -114,13 +114,23 @@ window.addEventListener("unhandledrejection", (e) => {
       TooLong: "Max 2 minutes for demo. Trim the video and try again.",
       Done: "Done. Preview: Generated.",
       SharePreparing: "Preparing share…",
-      ShareFail: "Sharing not available. Use a different app or save first.",
+      ShareFail: "Sharing not available.",
       ExportError: "Export error",
       Usage: (left, max) => `Free demo: ${left}/${max} exports left this month`,
       UsageUnknown: "Free demo: usage counter loading…",
       UsageBlocked: "Free demo limit reached for this month.",
       UpgradeTitle: "Premium Demo",
       UpgradeBody: "This is a premium demo build. Free users get a limited number of exports per month.",
+      BtnImport: "Import",
+      BtnCamera: "Camera",
+      BtnGenerate: "Generate",
+      BtnMark: "⭐ Mark",
+      BtnClear: "Clear",
+      BtnDelete: "Reset",
+      BtnOriginal: "Preview Original",
+      BtnGenerated: "Preview Generated",
+      BtnShareOriginal: "Share original",
+      BtnShareGenerated: "Share generated",
       BtnLead: (s) => `↩︎ ${s}s`,
       BtnRep: (x) => `⟲ ${x}×`,
       MusicOn: "♪ Music: On",
@@ -129,7 +139,9 @@ window.addEventListener("unhandledrejection", (e) => {
       ModeReplays: "Replays only",
       FormatOriginal: "Original",
       FormatVertical: "Vertical 9:16",
+      BackToEdit: "Back to edit",
     },
+
     pt: {
       tagline: "Replays estilo TV em segundos",
       Marks: "Marcas",
@@ -145,13 +157,23 @@ window.addEventListener("unhandledrejection", (e) => {
       TooLong: "Máx 2 minutos na demo. Corte o vídeo e tente de novo.",
       Done: "Pronto. Prévia: Gerado.",
       SharePreparing: "Preparando envio…",
-      ShareFail: "Compartilhar não disponível. Use outro app ou salve antes.",
+      ShareFail: "Compartilhar não disponível.",
       ExportError: "Erro ao exportar",
       Usage: (left, max) => `Demo grátis: ${left}/${max} exports restantes este mês`,
       UsageUnknown: "Demo grátis: carregando contador…",
       UsageBlocked: "Limite mensal da demo atingido.",
       UpgradeTitle: "Demo Premium",
       UpgradeBody: "Este é um build demo premium. Usuários free têm um limite de exports por mês.",
+      BtnImport: "Importar",
+      BtnCamera: "Câmera",
+      BtnGenerate: "Gerar",
+      BtnMark: "⭐ Mark",
+      BtnClear: "Limpar",
+      BtnDelete: "Resetar",
+      BtnOriginal: "Prévia Original",
+      BtnGenerated: "Prévia Gerado",
+      BtnShareOriginal: "Compartilhar original",
+      BtnShareGenerated: "Compartilhar gerado",
       BtnLead: (s) => `↩︎ ${s}s`,
       BtnRep: (x) => `⟲ ${x}×`,
       MusicOn: "♪ Música: On",
@@ -160,10 +182,138 @@ window.addEventListener("unhandledrejection", (e) => {
       ModeReplays: "Só Replays",
       FormatOriginal: "Original",
       FormatVertical: "Vertical 9:16",
+      BackToEdit: "Voltar editar",
     },
-    el: { /* mantém inglês se faltar */ },
-    es: { /* mantém inglês se faltar */ },
-    it: { /* mantém inglês se faltar */ },
+
+    // ✅ IMPORTANT: grego é "el" (não "gr")
+    el: {
+      tagline: "Επαναλήψεις τύπου TV σε δευτερόλεπτα",
+      Marks: "Σημάδια",
+      Hint: "Συμβουλή: Παίξε το βίντεο και πάτησε ⭐ Mark αμέσως μετά τη στιγμή.",
+      Ready: "Έτοιμο.",
+      Loaded: "Φορτώθηκε.",
+      Marked: "Σημειώθηκε.",
+      Cleared: "Καθαρίστηκε.",
+      Gen: "Δημιουργία…",
+      BusyS: "Μην αγγίζεις το βίντεο όσο δημιουργεί",
+      NoVideo: "Φόρτωσε πρώτα βίντεο.",
+      NeedMark: "Βάλε τουλάχιστον 1 σημάδι (⭐).",
+      TooLong: "Μέχρι 2 λεπτά για demo.",
+      Done: "Έτοιμο.",
+      SharePreparing: "Προετοιμασία…",
+      ShareFail: "Το Share δεν υποστηρίζεται.",
+      ExportError: "Σφάλμα export",
+      Usage: (left, max) => `Demo: ${left}/${max} exports αυτόν τον μήνα`,
+      UsageUnknown: "Demo: φόρτωση…",
+      UsageBlocked: "Τέλος μηνιαίου ορίου.",
+      UpgradeTitle: "Premium Demo",
+      UpgradeBody: "Υπάρχει μηνιαίο όριο exports.",
+      BtnImport: "Import",
+      BtnCamera: "Camera",
+      BtnGenerate: "Generate",
+      BtnMark: "⭐ Mark",
+      BtnClear: "Clear",
+      BtnDelete: "Reset",
+      BtnOriginal: "Preview Original",
+      BtnGenerated: "Preview Generated",
+      BtnShareOriginal: "Share original",
+      BtnShareGenerated: "Share generated",
+      BtnLead: (s) => `↩︎ ${s}s`,
+      BtnRep: (x) => `⟲ ${x}×`,
+      MusicOn: "♪ Music: On",
+      MusicOff: "♪ Music: Off",
+      ModeFull: "Original + Replays",
+      ModeReplays: "Replays only",
+      FormatOriginal: "Original",
+      FormatVertical: "Vertical 9:16",
+      BackToEdit: "Back to edit",
+    },
+
+    es: {
+      tagline: "Repeticiones estilo TV en segundos",
+      Marks: "Marcas",
+      Hint: "Tip: Reproduce el video y toca ⭐ Mark justo después del momento.",
+      Ready: "Listo.",
+      Loaded: "Cargado.",
+      Marked: "Marcado.",
+      Cleared: "Limpiado.",
+      Gen: "Generando…",
+      BusyS: "No toques el video mientras procesa",
+      NoVideo: "Carga un video primero.",
+      NeedMark: "Marca al menos 1 replay (⭐).",
+      TooLong: "Máx 2 minutos en demo.",
+      Done: "Listo.",
+      SharePreparing: "Preparando…",
+      ShareFail: "Compartir no disponible.",
+      ExportError: "Error al exportar",
+      Usage: (left, max) => `Demo: ${left}/${max} exports este mes`,
+      UsageUnknown: "Demo: cargando…",
+      UsageBlocked: "Límite mensual alcanzado.",
+      UpgradeTitle: "Demo Premium",
+      UpgradeBody: "Hay un límite mensual de exports.",
+      BtnImport: "Importar",
+      BtnCamera: "Cámara",
+      BtnGenerate: "Generar",
+      BtnMark: "⭐ Mark",
+      BtnClear: "Limpiar",
+      BtnDelete: "Reset",
+      BtnOriginal: "Ver Original",
+      BtnGenerated: "Ver Generado",
+      BtnShareOriginal: "Compartir original",
+      BtnShareGenerated: "Compartir generado",
+      BtnLead: (s) => `↩︎ ${s}s`,
+      BtnRep: (x) => `⟲ ${x}×`,
+      MusicOn: "♪ Música: On",
+      MusicOff: "♪ Música: Off",
+      ModeFull: "Original + Replays",
+      ModeReplays: "Solo Replays",
+      FormatOriginal: "Original",
+      FormatVertical: "Vertical 9:16",
+      BackToEdit: "Volver a editar",
+    },
+
+    it: {
+      tagline: "Replay stile TV in pochi secondi",
+      Marks: "Segni",
+      Hint: "Suggerimento: Riproduci il video e tocca ⭐ Mark subito dopo la giocata.",
+      Ready: "Pronto.",
+      Loaded: "Caricato.",
+      Marked: "Segnato.",
+      Cleared: "Pulito.",
+      Gen: "Generazione…",
+      BusyS: "Non toccare il video durante la generazione",
+      NoVideo: "Carica prima un video.",
+      NeedMark: "Segna almeno 1 replay (⭐).",
+      TooLong: "Max 2 minuti in demo.",
+      Done: "Fatto.",
+      SharePreparing: "Preparazione…",
+      ShareFail: "Condivisione non disponibile.",
+      ExportError: "Errore export",
+      Usage: (left, max) => `Demo: ${left}/${max} exports questo mese`,
+      UsageUnknown: "Demo: caricamento…",
+      UsageBlocked: "Limite mensile raggiunto.",
+      UpgradeTitle: "Demo Premium",
+      UpgradeBody: "C’è un limite mensile di exports.",
+      BtnImport: "Importa",
+      BtnCamera: "Camera",
+      BtnGenerate: "Genera",
+      BtnMark: "⭐ Mark",
+      BtnClear: "Pulisci",
+      BtnDelete: "Reset",
+      BtnOriginal: "Preview Originale",
+      BtnGenerated: "Preview Generato",
+      BtnShareOriginal: "Condividi originale",
+      BtnShareGenerated: "Condividi generato",
+      BtnLead: (s) => `↩︎ ${s}s`,
+      BtnRep: (x) => `⟲ ${x}×`,
+      MusicOn: "♪ Musica: On",
+      MusicOff: "♪ Musica: Off",
+      ModeFull: "Originale + Replay",
+      ModeReplays: "Solo Replay",
+      FormatOriginal: "Originale",
+      FormatVertical: "Verticale 9:16",
+      BackToEdit: "Torna a modificare",
+    },
   };
 
   let lang = (langSel?.value || "en");
@@ -171,28 +321,43 @@ window.addEventListener("unhandledrejection", (e) => {
 
   function applyLang() {
     const T = tr();
+
+    // textos principais
     if (tagline) tagline.textContent = T.tagline;
     if (marksTitle) marksTitle.textContent = T.Marks;
     if (hintText) hintText.textContent = T.Hint;
 
+    // botões
+    if (btnUpload) btnUpload.textContent = T.BtnImport;
+    if (btnCam) btnCam.textContent = T.BtnCamera;
+    if (btnGenerate) btnGenerate.textContent = T.BtnGenerate;
+    if (btnMark) btnMark.textContent = T.BtnMark;
+    if (btnClear) btnClear.textContent = T.BtnClear;
+    if (btnDelete) btnDelete.textContent = T.BtnDelete;
+
+    if (btnPreviewOriginal) btnPreviewOriginal.textContent = T.BtnOriginal;
+    if (btnPreviewGenerated) btnPreviewGenerated.textContent = T.BtnGenerated;
+
+    if (btnShareOriginal) btnShareOriginal.textContent = T.BtnShareOriginal;
+    if (btnShareGenerated) btnShareGenerated.textContent = T.BtnShareGenerated;
+
+    // selects
     if (modeSel) {
       const o1 = modeSel.querySelector('option[value="full"]');
       const o2 = modeSel.querySelector('option[value="replays"]');
-      if (o1) o1.textContent = T.ModeFull || STR.en.ModeFull;
-      if (o2) o2.textContent = T.ModeReplays || STR.en.ModeReplays;
+      if (o1) o1.textContent = T.ModeFull;
+      if (o2) o2.textContent = T.ModeReplays;
     }
     if (formatSel) {
       const o1 = formatSel.querySelector('option[value="original"]');
       const o2 = formatSel.querySelector('option[value="vertical"]');
-      if (o1) o1.textContent = T.FormatOriginal || STR.en.FormatOriginal;
-      if (o2) o2.textContent = T.FormatVertical || STR.en.FormatVertical;
+      if (o1) o1.textContent = T.FormatOriginal;
+      if (o2) o2.textContent = T.FormatVertical;
     }
 
-    // badges
-    updateBadges();
-
-    // usage line text
-    refreshUsageUI();
+    // badges + usage (se existirem no teu motor)
+    try { updateBadges?.(); } catch {}
+    try { refreshUsageUI?.(); } catch {}
   }
 
   if (langSel) {
@@ -201,6 +366,9 @@ window.addEventListener("unhandledrejection", (e) => {
       applyLang();
     };
   }
+
+  // ✅ IMPORTANT: aplica 1x ao iniciar (senão parece que não muda)
+  applyLang();
   // ---------- State ----------
   let marks = [];
   let leadIn = 3;   // 1..10
