@@ -1465,15 +1465,12 @@ window.addEventListener("unhandledrejection", (e) => {
     a.href = url;
     a.download = filename;
     a.rel = "noopener";
-    a.target = "_blank";
+    
     document.body.appendChild(a);
     a.click();
     a.remove();
 
-    setTimeout(() => {
-      try { window.open(url, "_blank", "noopener"); } catch { }
-      showModal("Export tip", tr().ExportTip);
-    }, 250);
+    
   }
 
   async function ensureMp4Ready() {
