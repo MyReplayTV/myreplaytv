@@ -1,4 +1,4 @@
-// iOS Safari: avoid UI-breaking unhandled AbortError noise
+// iOS Safari: avoid UI-breaking unhandled AbortError noise.
 window.addEventListener("unhandledrejection", (e) => {
   const reason = String(e?.reason?.name || e?.reason || "");
   if (reason.includes("AbortError")) e.preventDefault();
