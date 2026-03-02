@@ -1,7 +1,6 @@
-// MyRePlayTV — app.js (refeito e encapsulado, sem conflitos)
-// Regra: tudo dentro de IIFE, e toda referência DOM é opcional (não quebra).
+// MyRePlayTV — app.js (Opção A: FFmpeg backend concat)
+// Tudo em IIFE. Mantém câmera/marcas/idiomas/lock/usage.
 
-// iOS Safari: evita ruído de AbortError quebrando UX.
 window.addEventListener("unhandledrejection", (e) => {
   const reason = String(e?.reason?.name || e?.reason || "");
   if (reason.includes("AbortError")) e.preventDefault();
@@ -10,50 +9,37 @@ window.addEventListener("unhandledrejection", (e) => {
 (() => {
   "use strict";
 
-  // ---------- Helpers ----------
   const $ = (id) => document.getElementById(id);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const lerp = (a, b, t) => a + (b - a) * t;
-
   function safe(fn) { try { return fn(); } catch { return undefined; } }
 
-  // ---------- DOM ----------
+  // DOM (IDs 100% iguais ao index.html)
   const player = $("player");
   const status = $("status");
-
   const btnCam = $("btnCam");
   const btnUpload = $("btnUpload");
   const fileInput = $("fileInput");
-
   const btnGenerate = $("btnGenerate");
   const btnMark = $("btnMark");
   const btnClear = $("btnClear");
   const btnDelete = $("btnDelete");
-
   const leadBtn = $("leadBtn");
   const repBtn = $("repBtn");
-
   const musicBtn = $("musicBtn");
   const musicInput = $("musicInput");
-
   const modeSel = $("modeSel");
   const formatSel = $("formatSel");
-
   const btnPreviewOriginal = $("btnPreviewOriginal");
   const btnPreviewGenerated = $("btnPreviewGenerated");
-
   const btnShareOriginal = $("btnShareOriginal");
   const btnShareGenerated = $("btnShareGenerated");
-
   const marksList = $("marksList");
-
   const langSel = $("langSel");
   const tagline = $("tagline");
   const marksTitle = $("marksTitle");
   const hintText = $("hintText");
   const usageLine = $("usageLine");
-
   const lockOverlay = $("lockOverlay");
   const lockTitle = $("lockTitle");
   const lockSub = $("lockSub");
@@ -65,22 +51,51 @@ window.addEventListener("unhandledrejection", (e) => {
   const mBody = $("mBody");
   const mOk = $("mOk");
 
-  // ---------- Modal ----------
-  const showModal = (t, b) => {
-    if (!modalBg || !mTitle || !mBody) {
-      alert(`${t}\n\n${b}`);
-      return;
+  // Blindagem: nenhum botão vira submit
+  (function fixButtonTypes() {
+    [
+      btnCam, btnUpload, btnGenerate, btnMark, btnClear, btnDelete,
+      leadBtn, repBtn, musicBtn,
+      btnPreviewOriginal, btnPreviewGenerated,
+      btnShareOriginal, btnShareGenerated,
+      recBtn, mOk
+    ].filter(Boolean).forEach((b) => { try { b.type = "button"; } catch {} });
+  })();
+
+  // Checagem “fatal”: se isso falhar, nada funciona
+  (function domSanity() {
+    const ok =
+      !!player && !!status && !!btnUpload && !!fileInput && !!btnGenerate &&
+      !!btnMark && !!btnClear && !!btnDelete && !!marksList &&
+      !!modeSel && !!formatSel && !!btnPreviewOriginal &&
+      !!btnShareOriginal && !!langSel;
+
+    if (!ok) {
+      alert("ERRO: IDs do HTML não batem com o app.js. Verifique index.html.");
+      console.log("DOM sanity", {
+        player: !!player, status: !!status,
+        btnUpload: !!btnUpload, fileInput: !!fileInput,
+        btnGenerate: !!btnGenerate, btnMark: !!btnMark,
+        btnClear: !!btnClear, btnDelete: !!btnDelete,
+        marksList: !!marksList,
+        modeSel: !!modeSel, formatSel: !!formatSel,
+        btnPreviewOriginal: !!btnPreviewOriginal,
+        btnShareOriginal: !!btnShareOriginal,
+        langSel: !!langSel,
+      });
     }
+  })();
+
+  const showModal = (t, b) => {
+    if (!modalBg || !mTitle || !mBody) return alert(`${t}\n\n${b}`);
     mTitle.textContent = String(t || "MyRePlayTV");
     mBody.textContent = String(b || "");
-    modalBg.style.display = "flex";
+    modalBg.style.display = "grid";
   };
   const hideModal = () => { if (modalBg) modalBg.style.display = "none"; };
-
   if (mOk) mOk.onclick = hideModal;
   if (modalBg) modalBg.addEventListener("click", (e) => { if (e.target === modalBg) hideModal(); });
 
-  // ---------- iOS inline video safety ----------
   function forceInlineVideo() {
     if (!player) return;
     player.playsInline = true;
@@ -89,6 +104,7 @@ window.addEventListener("unhandledrejection", (e) => {
     player.setAttribute("disablepictureinpicture", "");
     player.setAttribute("controlslist", "nodownload noplaybackrate noremoteplayback");
   }
+
   function forceAudioOnForPreview() {
     if (!player) return;
     player.muted = false;
@@ -96,7 +112,7 @@ window.addEventListener("unhandledrejection", (e) => {
     player.volume = 1;
     player.removeAttribute("muted");
   }
-  
+
   // ---------- Language ----------
   const STR = {
     en: {
@@ -139,9 +155,7 @@ window.addEventListener("unhandledrejection", (e) => {
       ModeReplays: "Replays only",
       FormatOriginal: "Original",
       FormatVertical: "Vertical 9:16",
-      BackToEdit: "Back to edit",
     },
-
     pt: {
       tagline: "Replays estilo TV em segundos",
       Marks: "Marcas",
@@ -182,10 +196,7 @@ window.addEventListener("unhandledrejection", (e) => {
       ModeReplays: "Só Replays",
       FormatOriginal: "Original",
       FormatVertical: "Vertical 9:16",
-      BackToEdit: "Voltar editar",
     },
-
-    // ✅ IMPORTANT: grego é "el" (não "gr")
     el: {
       tagline: "Επαναλήψεις τύπου TV σε δευτερόλεπτα",
       Marks: "Σημάδια",
@@ -226,9 +237,7 @@ window.addEventListener("unhandledrejection", (e) => {
       ModeReplays: "Replays only",
       FormatOriginal: "Original",
       FormatVertical: "Vertical 9:16",
-      BackToEdit: "Back to edit",
     },
-
     es: {
       tagline: "Repeticiones estilo TV en segundos",
       Marks: "Marcas",
@@ -269,9 +278,7 @@ window.addEventListener("unhandledrejection", (e) => {
       ModeReplays: "Solo Replays",
       FormatOriginal: "Original",
       FormatVertical: "Vertical 9:16",
-      BackToEdit: "Volver a editar",
     },
-
     it: {
       tagline: "Replay stile TV in pochi secondi",
       Marks: "Segni",
@@ -312,22 +319,20 @@ window.addEventListener("unhandledrejection", (e) => {
       ModeReplays: "Solo Replay",
       FormatOriginal: "Originale",
       FormatVertical: "Verticale 9:16",
-      BackToEdit: "Torna a modificare",
     },
   };
 
-  let lang = (langSel?.value || "en");
+  let lang = (langSel?.value || "pt");
   function tr() { return STR[lang] || STR.en; }
+
+  function setStatus(t) { if (status) status.textContent = String(t || ""); }
 
   function applyLang() {
     const T = tr();
-
-    // textos principais
     if (tagline) tagline.textContent = T.tagline;
     if (marksTitle) marksTitle.textContent = T.Marks;
     if (hintText) hintText.textContent = T.Hint;
 
-    // botões
     if (btnUpload) btnUpload.textContent = T.BtnImport;
     if (btnCam) btnCam.textContent = T.BtnCamera;
     if (btnGenerate) btnGenerate.textContent = T.BtnGenerate;
@@ -337,11 +342,9 @@ window.addEventListener("unhandledrejection", (e) => {
 
     if (btnPreviewOriginal) btnPreviewOriginal.textContent = T.BtnOriginal;
     if (btnPreviewGenerated) btnPreviewGenerated.textContent = T.BtnGenerated;
-
     if (btnShareOriginal) btnShareOriginal.textContent = T.BtnShareOriginal;
     if (btnShareGenerated) btnShareGenerated.textContent = T.BtnShareGenerated;
 
-    // selects
     if (modeSel) {
       const o1 = modeSel.querySelector('option[value="full"]');
       const o2 = modeSel.querySelector('option[value="replays"]');
@@ -355,66 +358,39 @@ window.addEventListener("unhandledrejection", (e) => {
       if (o2) o2.textContent = T.FormatVertical;
     }
 
-    // badges + usage (se existirem no teu motor)
-    try { updateBadges?.(); } catch {}
-    try { refreshUsageUI?.(); } catch {}
+    updateBadges();
+    refreshUsageUI();
   }
 
-  if (langSel) {
-    langSel.onchange = () => {
-      lang = langSel.value || "en";
-      applyLang();
-    };
-  }
+  if (langSel) langSel.onchange = () => { lang = langSel.value || "pt"; applyLang(); };
 
-  // ✅ IMPORTANT: aplica 1x ao iniciar (senão parece que não muda)
-  applyLang();
   // ---------- State ----------
   let marks = [];
   let leadIn = 3;   // 1..10
   let repeats = 1;  // 1..3
-
   const MAX_SECONDS = 120;
 
-  // Replay feel
+  // “peak sync” (mantido)
   const AFTER_SEC = 2.0;
   const SLOW_RATE = 0.55;
-
-  // Auto-sync peak (motion)
   const PEAK_LOOKBACK = 0.70;
   const PEAK_LOOKAHEAD = 0.12;
   const PEAK_STEP = 0.08;
   const PEAK_LEAD = 0.14;
 
-  // Cinema tuning
-  const ZOOM_MAX = 1.22;
-  const ZOOM_EASE_MS = 320;
-  const FADE_MS = 120;
+  // backend tuning
+  const BACKEND_ZOOM = 1.18;
   const ADVANCE = 0.08;
-  const REC_WARMUP_MS = 420;
-
-  // Export quality
-  const REC_TIMESLICE = 500;
-  const FPS_HINT = 24;
 
   // URLs / blobs
   let originalUrl = null;
   let originalBlob = null;
-
   let generatedBlob = null;
   let generatedUrl = null;
-  let generatedMime = "video/webm";
 
   // Music
+  let musicFile = null;
   let musicUrl = null;
-  const musicEl = new Audio();
-  musicEl.loop = true;
-  musicEl.preload = "auto";
-
-  // Separate audio element for export (Safari)
-  const exportAudioEl = new Audio();
-  exportAudioEl.preload = "auto";
-  exportAudioEl.crossOrigin = "anonymous";
 
   // Camera
   let camStream = null;
@@ -422,15 +398,11 @@ window.addEventListener("unhandledrejection", (e) => {
   let camChunks = [];
   let cameraOn = false;
 
-  // Real camera zoom (when supported)
+  // zoom camera
   let camZoom = 1.0;
   let camZoomMin = 1.0;
   let camZoomMax = 1.0;
   let camZoomSupported = false;
-
-  function setStatus(t) {
-    if (status) status.textContent = String(t || "");
-  }
 
   // ---------- Demo usage counter ----------
   const DEMO_MAX_EXPORTS = 5;
@@ -461,65 +433,46 @@ window.addEventListener("unhandledrejection", (e) => {
   async function fetchUsage() {
     const res = await apiJSON("/api/usage");
     if (res.ok && res.data) {
-      const max = Number(res.data.max ?? res.data.limit ?? DEMO_MAX_EXPORTS);
+      const max = Number(res.data.max ?? DEMO_MAX_EXPORTS);
       const used = Number(res.data.used ?? 0);
       const left = Number(res.data.left ?? Math.max(0, max - used));
       usage = { ok: true, max, used, left };
       usageLoaded = true;
       return;
     }
-    // fallback local
-    const key = "mrp_local_usage_" + new Date().toISOString().slice(0, 7);
-    const used = Number(localStorage.getItem(key) || "0");
-    usage = { ok: true, max: DEMO_MAX_EXPORTS, used, left: Math.max(0, DEMO_MAX_EXPORTS - used) };
     usageLoaded = true;
   }
 
   async function consumeOneExport() {
     const res = await apiJSON("/api/usage/consume", { method: "POST" });
     if (res.ok && res.data) {
-      const max = Number(res.data.max ?? res.data.limit ?? DEMO_MAX_EXPORTS);
+      const max = Number(res.data.max ?? DEMO_MAX_EXPORTS);
       const used = Number(res.data.used ?? 0);
       const left = Number(res.data.left ?? Math.max(0, max - used));
       usage = { ok: true, max, used, left };
       usageLoaded = true;
       return true;
     }
-    // fallback local consume
-    const key = "mrp_local_usage_" + new Date().toISOString().slice(0, 7);
-    const used = Number(localStorage.getItem(key) || "0");
-    if (used >= DEMO_MAX_EXPORTS) return false;
-    localStorage.setItem(key, String(used + 1));
-    usage = { ok: true, max: DEMO_MAX_EXPORTS, used: used + 1, left: Math.max(0, DEMO_MAX_EXPORTS - (used + 1)) };
-    usageLoaded = true;
-    return true;
+    return false;
   }
 
   function refreshUsageUI() {
     if (!usageLine) return;
     const T = tr();
-    if (!usageLoaded) {
-      usageLine.textContent = T.UsageUnknown || STR.en.UsageUnknown;
-      return;
-    }
-    const left = Number(usage.left ?? 0);
-    const max = Number(usage.max ?? DEMO_MAX_EXPORTS);
-    usageLine.textContent = (T.Usage || STR.en.Usage)(left, max);
-    usageLine.style.opacity = left <= 1 ? "0.95" : "0.86";
+    if (!usageLoaded) { usageLine.textContent = T.UsageUnknown; return; }
+    usageLine.textContent = T.Usage(Number(usage.left ?? 0), Number(usage.max ?? DEMO_MAX_EXPORTS));
   }
 
-  function isUsageBlocked() {
-    return usageLoaded && Number(usage.left ?? 0) <= 0;
-  }
-  // ---------- LOCK (corrigido, sem erro de sintaxe) ----------
+  function isUsageBlocked() { return usageLoaded && Number(usage.left ?? 0) <= 0; }
+
+  // ---------- LOCK ----------
   function setLocked(on) {
-    if (lockOverlay) lockOverlay.style.display = on ? "flex" : "none";
-    if (lockTitle) lockTitle.textContent = tr().Gen || STR.en.Gen;
-    if (lockSub) lockSub.textContent = tr().BusyS || STR.en.BusyS;
+    if (lockOverlay) lockOverlay.style.display = on ? "grid" : "none";
+    if (lockTitle) lockTitle.textContent = tr().Gen;
+    if (lockSub) lockSub.textContent = tr().BusyS;
 
-    const allBtns = [
-      btnCam, btnUpload,
-      btnGenerate, btnMark, btnClear, btnDelete,
+    const all = [
+      btnCam, btnUpload, btnGenerate, btnMark, btnClear, btnDelete,
       leadBtn, repBtn, musicBtn,
       modeSel, formatSel,
       btnPreviewOriginal, btnPreviewGenerated,
@@ -527,12 +480,11 @@ window.addEventListener("unhandledrejection", (e) => {
       langSel
     ].filter(Boolean);
 
-    allBtns.forEach((b) => { b.disabled = !!on; });
-
+    all.forEach((b) => { b.disabled = !!on; });
     window.__MRP_LOCKED__ = !!on;
 
     if (player) {
-      player.controls = !on; // durante lock, tira controls pra não travar iOS
+      player.controls = !on;
       player.style.pointerEvents = on ? "none" : "auto";
       forceInlineVideo();
     }
@@ -544,7 +496,6 @@ window.addEventListener("unhandledrejection", (e) => {
     e.stopPropagation();
     return false;
   }
-
   ["touchstart","touchmove","touchend","pointerdown","pointerup","click","dblclick","keydown","wheel"]
     .forEach((evt) => window.addEventListener(evt, blockIfLocked, { capture: true, passive: false }));
 
@@ -554,16 +505,11 @@ window.addEventListener("unhandledrejection", (e) => {
     if (btnMark) btnMark.disabled = !y;
     if (btnClear) btnClear.disabled = !y;
     if (btnDelete) btnDelete.disabled = !y;
-
     if (modeSel) modeSel.disabled = !y;
     if (formatSel) formatSel.disabled = !y;
-
     if (btnPreviewOriginal) btnPreviewOriginal.disabled = !y;
-
-    // Share original só precisa de original carregado
     if (btnShareOriginal) btnShareOriginal.disabled = !y;
 
-    // Generated começa off até existir arquivo gerado
     if (btnPreviewGenerated) btnPreviewGenerated.disabled = !(generatedUrl && y);
     if (btnShareGenerated) btnShareGenerated.disabled = !(generatedBlob && y);
   }
@@ -572,19 +518,17 @@ window.addEventListener("unhandledrejection", (e) => {
     if (generatedUrl) URL.revokeObjectURL(generatedUrl);
     generatedUrl = null;
     generatedBlob = null;
-    generatedMime = "video/webm";
     if (btnPreviewGenerated) btnPreviewGenerated.disabled = true;
     if (btnShareGenerated) btnShareGenerated.disabled = true;
   }
 
   function updateBadges() {
     const T = tr();
-    if (leadBtn) leadBtn.textContent = (T.BtnLead || STR.en.BtnLead)(leadIn);
-    if (repBtn) repBtn.textContent = (T.BtnRep || STR.en.BtnRep)(repeats);
-    if (musicBtn) musicBtn.textContent = musicUrl ? (T.MusicOn || STR.en.MusicOn) : (T.MusicOff || STR.en.MusicOff);
+    if (leadBtn) leadBtn.textContent = (T.BtnLead)(leadIn);
+    if (repBtn) repBtn.textContent = (T.BtnRep)(repeats);
+    if (musicBtn) musicBtn.textContent = musicFile ? (T.MusicOn) : (T.MusicOff);
   }
 
-  // ---------- UI actions ----------
   if (leadBtn) leadBtn.onclick = () => {
     const n = prompt("Replay lead-in seconds (1–10):", String(leadIn));
     if (!n) return;
@@ -606,10 +550,9 @@ window.addEventListener("unhandledrejection", (e) => {
       "OK = pick file\nCancel = turn off"
     );
     if (!ok) {
+      musicFile = null;
       if (musicUrl) URL.revokeObjectURL(musicUrl);
       musicUrl = null;
-      safe(() => musicEl.pause());
-      musicEl.src = "";
       updateBadges();
       return;
     }
@@ -619,12 +562,13 @@ window.addEventListener("unhandledrejection", (e) => {
   if (musicInput) musicInput.onchange = () => {
     const f = musicInput.files?.[0];
     if (!f) return;
+    musicFile = f;
     if (musicUrl) URL.revokeObjectURL(musicUrl);
     musicUrl = URL.createObjectURL(f);
-    musicEl.src = musicUrl;
     updateBadges();
   };
-  // ---------- Camera motor (mantido) ----------
+
+  // ---------- Camera motor ----------
   function stopCamera() {
     if (!cameraOn) return;
 
@@ -662,28 +606,20 @@ window.addEventListener("unhandledrejection", (e) => {
     forceAudioOnForPreview();
     forceInlineVideo();
 
-    safe(() => { exportAudioEl.pause(); });
-    exportAudioEl.src = originalUrl;
-    safe(() => exportAudioEl.load());
-
     enableControls(true);
-    setStatus(tr().Loaded || STR.en.Loaded);
+    setStatus(tr().Loaded);
   }
 
-  // Import
   if (btnUpload) btnUpload.onclick = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
+    e?.preventDefault?.(); e?.stopPropagation?.();
     if (!fileInput) return false;
-    try { btnUpload.type = "button"; } catch {}
     fileInput.value = "";
     fileInput.click();
     return false;
   };
 
   if (fileInput) fileInput.onchange = (e) => {
-    e?.preventDefault?.();
-    e?.stopPropagation?.();
+    e?.preventDefault?.(); e?.stopPropagation?.();
     const f = fileInput.files?.[0];
     if (!f) return;
     setOriginalFromBlob(f);
@@ -711,7 +647,6 @@ window.addEventListener("unhandledrejection", (e) => {
         forceInlineVideo();
       }
 
-      // try real zoom support
       const vTrack = camStream.getVideoTracks?.()[0];
       if (vTrack && vTrack.getCapabilities) {
         const caps = vTrack.getCapabilities();
@@ -733,7 +668,7 @@ window.addEventListener("unhandledrejection", (e) => {
       setStatus("Camera ready. Pinch to zoom, then ● REC.");
     } catch (e) {
       console.error(e);
-      showModal("Camera blocked", tr().CamBlocked || "Allow camera + microphone permissions.");
+      showModal("Camera blocked", "Allow camera + microphone permissions.");
     }
   }
 
@@ -741,11 +676,7 @@ window.addEventListener("unhandledrejection", (e) => {
 
   // Pinch zoom (real track when supported)
   (function enableCameraPinchZoom() {
-    const wrap = $("videoWrap") || $("videoWrap") || $("videoWrap");
-    const host = $("videoWrap") || $("videoWrap") || document.getElementById("videoWrap") || document.getElementById("videoWrap");
-    const container = document.getElementById("videoWrap") || document.getElementById("videoWrap") || document.getElementById("videoWrap");
-    const w = document.getElementById("videoWrap") || document.getElementById("videoWrap") || document.getElementById("videoWrap");
-    const videoWrap = document.getElementById("videoWrap") || document.getElementById("videoWrap") || (player ? player.parentElement : null);
+    const videoWrap = document.getElementById("videoWrap") || (player ? player.parentElement : null);
     if (!player || !videoWrap) return;
 
     let baseZoom = 1.0;
@@ -769,9 +700,7 @@ window.addEventListener("unhandledrejection", (e) => {
           await vTrack.applyConstraints({ advanced: [{ zoom: camZoom }] });
           player.style.transform = "none";
           return;
-        } catch {
-          // fallback visual below
-        }
+        } catch {}
       }
 
       camZoom = clamp(camZoom, 1, 4);
@@ -815,7 +744,6 @@ window.addEventListener("unhandledrejection", (e) => {
       if (e.touches.length < 2) pinching = false;
     }, { passive: true });
 
-    // patch stopCamera to reset transform
     const _stop = stopCamera;
     stopCamera = function () {
       _stop();
@@ -824,7 +752,7 @@ window.addEventListener("unhandledrejection", (e) => {
     };
   })();
 
-  // REC button
+  // REC
   if (recBtn) recBtn.onclick = () => {
     if (!cameraOn || !camStream) return;
 
@@ -849,6 +777,7 @@ window.addEventListener("unhandledrejection", (e) => {
     try { camRecorder.stop(); } catch {}
     camRecorder = null;
   };
+
   // ---------- Marks UI ----------
   function renderMarks() {
     if (!marksList) return;
@@ -861,8 +790,8 @@ window.addEventListener("unhandledrejection", (e) => {
       row.innerHTML = `
         <div><b>⭐ Mark</b><div class="meta">${t.toFixed(2)}s</div></div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" class="smallBtn" data-go="${t}">Go</button>
-          <button type="button" class="smallBtn danger" data-del="${idx}">Delete</button>
+          <button type="button" class="btn small" data-go="${t}">Go</button>
+          <button type="button" class="btn small dangerGhost" data-del="${idx}">Delete</button>
         </div>
       `;
       marksList.appendChild(row);
@@ -894,16 +823,16 @@ window.addEventListener("unhandledrejection", (e) => {
   }
 
   if (btnMark) btnMark.onclick = () => {
-    if (!player || !player.duration) return showModal("MyRePlayTV", tr().NoVideo || STR.en.NoVideo);
+    if (!player || !player.duration) return showModal("MyRePlayTV", tr().NoVideo);
     marks.push(Number(player.currentTime || 0));
     renderMarks();
-    setStatus(tr().Marked || STR.en.Marked);
+    setStatus(tr().Marked);
   };
 
   if (btnClear) btnClear.onclick = () => {
     marks = [];
     renderMarks();
-    setStatus(tr().Cleared || STR.en.Cleared);
+    setStatus(tr().Cleared);
   };
 
   if (btnDelete) btnDelete.onclick = () => {
@@ -915,7 +844,6 @@ window.addEventListener("unhandledrejection", (e) => {
     originalUrl = null;
     originalBlob = null;
 
-    safe(() => { exportAudioEl.pause(); exportAudioEl.src = ""; });
     safe(() => { player.pause(); });
 
     if (player) {
@@ -926,7 +854,7 @@ window.addEventListener("unhandledrejection", (e) => {
 
     enableControls(false);
     forceInlineVideo();
-    setStatus(tr().Ready || STR.en.Ready);
+    setStatus(tr().Ready);
   };
 
   // Preview original
@@ -956,7 +884,8 @@ window.addEventListener("unhandledrejection", (e) => {
     forceInlineVideo();
     player.play().catch(() => {});
   };
-  // ---------- Motion peak search (motor mantido) ----------
+
+  // ---------- Motion peak search ----------
   const tmp = document.createElement("canvas");
   const tctx = tmp.getContext("2d", { willReadFrequently: true });
 
@@ -1020,388 +949,8 @@ window.addEventListener("unhandledrejection", (e) => {
     return clamp(bestT - PEAK_LEAD, 0, dur);
   }
 
-  // ---------- Export drawing / watermark ----------
-  function drawWatermark(ctx, w) {
-    const text = "MyRePlayTV";
-    ctx.save();
-    ctx.globalAlpha = 0.86;
-    ctx.font = `900 ${Math.max(18, Math.round(w * 0.030))}px system-ui,-apple-system,Segoe UI,Roboto,Arial`;
-    const pad = Math.max(12, Math.round(w * 0.02));
-    const x = pad, y = pad;
-    const m = ctx.measureText(text);
-    const boxW = m.width + pad * 1.3;
-    const boxH = Math.max(32, Math.round(w * 0.055));
-    ctx.fillStyle = "rgba(0,0,0,.30)";
-    ctx.strokeStyle = "rgba(255,255,255,.18)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(x, y, boxW, boxH, 999);
-    else {
-      // fallback
-      ctx.rect(x, y, boxW, boxH);
-    }
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = "rgba(255,255,255,.90)";
-    ctx.fillText(text, x + pad * 0.65, y + boxH * 0.70);
-    ctx.restore();
-  }
-
-  function computeCanvasSize(vw, vh, format) {
-    if (format === "vertical") return { cw: 1080, ch: 1920 };
-    const isLandscape = (vw || 1280) >= (vh || 720);
-    if (isLandscape) return { cw: 1920, ch: 1080 };
-    return { cw: 1080, ch: 1920 };
-  }
-
-  function drawFrame(ctx, canvasW, canvasH, zoomMode) {
-    if (!player) return;
-    const vw = player.videoWidth || canvasW;
-    const vh = player.videoHeight || canvasH;
-    const format = (formatSel?.value || "original");
-
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-
-    if (format === "vertical") {
-      const targetAR = canvasW / canvasH;
-      const srcAR = vw / vh;
-
-      let srcW, srcH;
-      if (srcAR > targetAR) { srcH = vh; srcW = vh * targetAR; }
-      else { srcW = vw; srcH = vw / targetAR; }
-
-      let sx = (vw - srcW) / 2;
-      let sy = (vh - srcH) / 2;
-
-      if (zoomMode) {
-        const z = zoomMode;
-        const zW = srcW / z;
-        const zH = srcH / z;
-        sx = clamp((vw - zW) / 2, 0, vw - zW);
-        sy = clamp((vh - zH) / 2, 0, vh - zH);
-        srcW = zW; srcH = zH;
-      }
-
-      ctx.drawImage(player, sx, sy, srcW, srcH, 0, 0, canvasW, canvasH);
-      return;
-    }
-
-    if (zoomMode) {
-      const scale = zoomMode;
-      const srcW = vw / scale;
-      const srcH = vh / scale;
-      const sx = clamp((vw - srcW) / 2, 0, vw - srcW);
-      const sy = clamp((vh - srcH) / 2, 0, vh - srcH);
-      ctx.drawImage(player, sx, sy, srcW, srcH, 0, 0, canvasW, canvasH);
-    } else {
-      ctx.drawImage(player, 0, 0, canvasW, canvasH);
-    }
-  } 
-  function makeExporter(canvas, ctx) {
-    let fx = { mode: "normal", zoom: 1.0, targetZoom: 1.0, fade: 0 };
-    let running = true;
-
-    function draw() {
-      fx.zoom = fx.zoom + (fx.targetZoom - fx.zoom) * 0.075;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (fx.mode === "replay") drawFrame(ctx, canvas.width, canvas.height, fx.zoom);
-      else drawFrame(ctx, canvas.width, canvas.height, 0);
-
-      drawWatermark(ctx, canvas.width);
-
-      if (fx.fade > 0) {
-        ctx.save();
-        ctx.globalAlpha = fx.fade;
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
-      }
-    }
-
-    const rvfc = player?.requestVideoFrameCallback?.bind(player);
-    if (rvfc) {
-      const loop = () => { if (!running) return; draw(); rvfc(loop); };
-      rvfc(loop);
-    } else {
-      const loop = () => { if (!running) return; draw(); requestAnimationFrame(loop); };
-      requestAnimationFrame(loop);
-    }
-
-    return {
-      normal() { fx.mode = "normal"; fx.targetZoom = 1.0; },
-      replay() { fx.mode = "replay"; fx.targetZoom = ZOOM_MAX; },
-      zoomOut() { fx.targetZoom = 1.0; },
-      setFade(a) { fx.fade = clamp(a, 0, 1); },
-      stop() { running = false; }
-    };
-  }
-
-  async function fade(exporter, fromA, toA, ms) {
-    const t0 = performance.now();
-    const dur = Math.max(80, ms | 0);
-    while (true) {
-      const t = (performance.now() - t0) / dur;
-      exporter.setFade(lerp(fromA, toA, clamp(t, 0, 1)));
-      if (t >= 1) break;
-      await sleep(16);
-    }
-  }
-
-  async function waitNear(t) {
-    if (!player) return;
-    const start = performance.now();
-    while (Math.abs((player.currentTime || 0) - t) > 0.18) {
-      if (performance.now() - start > 7000) break;
-      await sleep(60);
-    }
-  }
-
-  async function waitUntilTime(target) {
-    if (!player) return;
-    target = clamp(target, 0, player.duration || 1e9);
-    return new Promise((resolve) => {
-      const poll = () => {
-        if ((player.currentTime || 0) >= target) return resolve();
-        setTimeout(poll, 16);
-      };
-      poll();
-    });
-  }
-
-  async function playTo(end) {
-    if (!player) return;
-    end = clamp(end, 0, player.duration);
-    player.playbackRate = 1;
-    await player.play().catch(() => {});
-    return new Promise((resolve) => {
-      const onTime = () => {
-        if ((player.currentTime || 0) >= end - 0.03) {
-          player.pause();
-          player.removeEventListener("timeupdate", onTime);
-          resolve();
-        }
-      };
-      player.addEventListener("timeupdate", onTime);
-    });
-  }
-
-  async function startExportAudioAt(t) {
-    try {
-      exportAudioEl.pause();
-      exportAudioEl.currentTime = clamp(t, 0, exportAudioEl.duration || 1e9);
-      exportAudioEl.muted = false;
-      exportAudioEl.volume = 1;
-      await exportAudioEl.play();
-    } catch {}
-  }
-  function stopExportAudio() { try { exportAudioEl.pause(); } catch {} }
-
-  async function pickRecorder(stream) {
-    const tries = [
-      { mime: "video/mp4;codecs=h264,aac" },
-      { mime: "video/mp4" },
-      { mime: "video/webm;codecs=vp9,opus" },
-      { mime: "video/webm;codecs=vp8,opus" },
-    ];
-    for (const t of tries) {
-      try {
-        if (t.mime && MediaRecorder.isTypeSupported?.(t.mime)) {
-          return {
-            rec: new MediaRecorder(stream, { mimeType: t.mime }),
-            mime: t.mime
-          };
-        }
-      } catch {}
-    }
-    return { rec: new MediaRecorder(stream), mime: "video/webm" };
-  }
-
-  // ---------- CORE: generateTV ----------
-  async function generateTV(mode) {
-    if (!player) throw new Error("No player.");
-    const vw = player.videoWidth || 1280;
-    const vh = player.videoHeight || 720;
-
-    const format = (formatSel?.value || "original");
-    const { cw, ch } = computeCanvasSize(vw, vh, format);
-
-    if ((player.duration || 0) > MAX_SECONDS + 0.5) {
-      throw new Error(tr().TooLong || STR.en.TooLong);
-    }
-
-    setStatus("Auto-syncing marks…");
-    const sorted = marks.slice().sort((a, b) => a - b);
-    const savedT = player.currentTime || 0;
-
-    const synced = [];
-    for (const m of sorted) {
-      const slowStart = await findPeak(m);
-      synced.push({ mark: m, slowStart });
-    }
-
-    player.currentTime = clamp(savedT, 0, player.duration);
-    await waitSeek();
-
-    const canvas = document.createElement("canvas");
-    canvas.width = cw;
-    canvas.height = ch;
-    const ctx = canvas.getContext("2d", { alpha: false });
-
-    const stream = canvas.captureStream(FPS_HINT);
-
-    // audio mix
-    let ac = null, dest = null, gainOrig = null, gainMusic = null;
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      ac = new AC();
-      dest = ac.createMediaStreamDestination();
-
-      const srcOrig = ac.createMediaElementSource(exportAudioEl);
-      gainOrig = ac.createGain(); gainOrig.gain.value = 1.0;
-      srcOrig.connect(gainOrig).connect(dest);
-
-      if (musicUrl) {
-        const srcMusic = ac.createMediaElementSource(musicEl);
-        gainMusic = ac.createGain(); gainMusic.gain.value = 0.0;
-        srcMusic.connect(gainMusic).connect(dest);
-      }
-
-      dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
-    } catch (e) {
-      console.warn("Audio mix not available:", e);
-    }
-
-    const { rec, mime } = await pickRecorder(stream);
-    generatedMime = mime;
-
-    const chunks = [];
-    rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
-    rec.start(REC_TIMESLICE);
-
-    const exporter = makeExporter(canvas, ctx);
-
-    player.muted = true;
-
-    // warmup
-    player.playbackRate = 1;
-    await player.play().catch(() => {});
-    await sleep(REC_WARMUP_MS);
-    player.pause();
-
-    const ramp = (gainNode, to) => {
-      if (!gainNode || !ac) return;
-      const now = ac.currentTime;
-      try {
-        gainNode.gain.cancelScheduledValues(now);
-        gainNode.gain.setValueAtTime(gainNode.gain.value, now);
-        gainNode.gain.linearRampToValueAtTime(to, now + 0.05);
-      } catch {}
-    };
-
-    const audioNormal = async (t) => {
-      ramp(gainOrig, 1.0);
-      ramp(gainMusic, 0.0);
-      safe(() => musicEl.pause());
-      stopExportAudio();
-      if (typeof t === "number") await startExportAudioAt(t);
-    };
-
-    const audioReplay = () => {
-      ramp(gainOrig, 0.0);
-      stopExportAudio();
-      if (musicUrl && gainMusic && ac) {
-        try { musicEl.currentTime = 0; musicEl.play().catch(() => {}); } catch {}
-        ramp(gainMusic, 0.8);
-      } else {
-        ramp(gainMusic, 0.0);
-        safe(() => musicEl.pause());
-      }
-    };
-
-    // record original
-    if (mode !== "replays") {
-      setStatus("Recording original…");
-      exporter.normal(); exporter.setFade(0);
-
-      const START = Math.min(0.25, Math.max(0, (player.duration || 0) - 0.3));
-      player.playbackRate = 1;
-      player.currentTime = START;
-      await waitNear(START);
-      await audioNormal(START);
-
-      await playTo(player.duration);
-      stopExportAudio();
-    }
-    // record replays
-    setStatus("Recording replays…");
-    for (const it of synced) {
-      const slowStart = it.slowStart;
-      const clipStart = clamp(slowStart - leadIn, 0, player.duration);
-      const clipEnd = clamp(slowStart + AFTER_SEC, 0, player.duration);
-
-      for (let r = 0; r < repeats; r++) {
-        await fade(exporter, 0, 1, FADE_MS);
-        await fade(exporter, 1, 0, FADE_MS);
-
-        player.currentTime = clipStart;
-        await waitNear(clipStart);
-
-        exporter.replay();
-        await sleep(ZOOM_EASE_MS);
-
-        audioReplay();
-
-        player.playbackRate = 1;
-        await player.play().catch(() => {});
-        await waitUntilTime(clamp(slowStart - ADVANCE, 0, player.duration));
-
-        player.currentTime = slowStart;
-        await sleep(10);
-        player.playbackRate = SLOW_RATE;
-
-        await new Promise((resolve) => {
-          const onTime = () => {
-            if ((player.currentTime || 0) >= clipEnd - 0.03) {
-              player.pause();
-              player.removeEventListener("timeupdate", onTime);
-              resolve();
-            }
-          };
-          player.addEventListener("timeupdate", onTime);
-        });
-
-        player.playbackRate = 1;
-        exporter.zoomOut();
-        await sleep(ZOOM_EASE_MS);
-        exporter.normal();
-
-        ramp(gainMusic, 0.0);
-        safe(() => musicEl.pause());
-        await sleep(100);
-      }
-    }
-
-    exporter.stop();
-    await sleep(260);
-    rec.stop();
-
-    const blob = await new Promise((res) => {
-      rec.onstop = () => res(new Blob(chunks, { type: mime }));
-    });
-
-    try { stopExportAudio(); } catch {}
-    try { if (ac) ac.close(); } catch {}
-
-    player.muted = false;
-    forceAudioOnForPreview();
-    forceInlineVideo();
-
-    return blob;
-    }
-
-    // ---------- Share helper ----------
-    async function shareFile(blob, mime, filename) {
+  // ---------- Share helper ----------
+  async function shareFile(blob, mime, filename) {
     const file = new File([blob], filename, { type: mime });
     if (!navigator.share) return false;
     try {
@@ -1412,138 +961,179 @@ window.addEventListener("unhandledrejection", (e) => {
       console.warn("Share failed:", e);
       return false;
     }
-    }
+  }
 
-    // ---------- Share Original ----------
-    if (btnShareOriginal) {
+  if (btnShareOriginal) {
     btnShareOriginal.onclick = async (e) => {
       e?.preventDefault?.(); e?.stopPropagation?.();
       try {
-        if (!originalBlob) return showModal("MyRePlayTV", tr().NoVideo || STR.en.NoVideo);
-        setStatus(tr().SharePreparing || STR.en.SharePreparing);
+        if (!originalBlob) return showModal("MyRePlayTV", tr().NoVideo);
+        setStatus(tr().SharePreparing);
 
-        const ok = await shareFile(
-          originalBlob,
-          "video/mp4",
-          `MyRePlayTV_Original_${Date.now()}.mp4`
-        );
-
-        if (!ok) showModal("MyRePlayTV", tr().ShareFail || STR.en.ShareFail);
-        else setStatus(tr().Done || STR.en.Done);
+        const ok = await shareFile(originalBlob, "video/mp4", `MyRePlayTV_Original_${Date.now()}.mp4`);
+        if (!ok) showModal("MyRePlayTV", tr().ShareFail);
+        else setStatus(tr().Done);
       } catch (err) {
-        showModal(tr().ExportError || STR.en.ExportError, String(err?.message || err || "Share failed."));
-        setStatus(tr().Ready || STR.en.Ready);
+        showModal(tr().ExportError, String(err?.message || err || "Share failed."));
+        setStatus(tr().Ready);
       } finally {
         enableControls(!!originalUrl);
       }
     };
-    }
+  }
 
-    // ---------- Share Generated ----------
-    if (btnShareGenerated) {
+  if (btnShareGenerated) {
     btnShareGenerated.onclick = async (e) => {
       e?.preventDefault?.(); e?.stopPropagation?.();
       if (!generatedBlob) return showModal("MyRePlayTV", "Generate first.");
 
-      const mode = (modeSel?.value || "full");
-      const name = mode === "replays" ? "ReplaysOnly" : "OriginalPlusReplays";
-
       try {
-        // share precisa ficar no gesto do clique → NÃO atrasar demais
-        setStatus(tr().SharePreparing || STR.en.SharePreparing);
-        const ok = await shareFile(generatedBlob, generatedMime || "video/webm", `MyRePlayTV_${name}_${Date.now()}.mp4`);
-        if (!ok) showModal("MyRePlayTV", tr().ShareFail || STR.en.ShareFail);
-        else setStatus(tr().Done || STR.en.Done);
+        setStatus(tr().SharePreparing);
+        const ok = await shareFile(generatedBlob, "video/mp4", `MyRePlayTV_${Date.now()}.mp4`);
+        if (!ok) showModal("MyRePlayTV", tr().ShareFail);
+        else setStatus(tr().Done);
       } catch (err) {
-        showModal(tr().ExportError || STR.en.ExportError, String(err?.message || err || "Share failed."));
-        setStatus(tr().Ready || STR.en.Ready);
+        showModal(tr().ExportError, String(err?.message || err || "Share failed."));
+        setStatus(tr().Ready);
       } finally {
         enableControls(!!originalUrl);
       }
     };
+  }
+
+  // ---------- Backend Generate ----------
+  async function backendGenerate({ mode, format, items }) {
+    if (!originalBlob) throw new Error("Missing originalBlob");
+
+    const fd = new FormData();
+    fd.append("file", originalBlob, `original-${Date.now()}.mp4`);
+    if (musicFile) fd.append("music", musicFile, `music-${Date.now()}.mp3`);
+
+    const config = {
+      mode,
+      format,
+      leadIn,
+      repeats,
+      afterSec: AFTER_SEC,
+      slowRate: SLOW_RATE,
+      advance: ADVANCE,
+      zoom: BACKEND_ZOOM,
+      watermark: true,
+      items, // [{mark, slowStart}]
+    };
+    fd.append("config", JSON.stringify(config));
+
+    const r = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "x-mrp-token": DEMO_TOKEN, "x-demo-token": DEMO_TOKEN },
+      body: fd,
+    });
+
+    if (!r.ok) {
+      let msg = `Generate failed (${r.status})`;
+      try {
+        const j = await r.json();
+        msg = j?.detail || j?.error || msg;
+      } catch {}
+      throw new Error(msg);
     }
-    // ---------- Generate button ----------
-    if (btnGenerate) {
-      btnGenerate.onclick = async (e) => {
-        e?.preventDefault?.(); e?.stopPropagation?.();
-        if (window.__MRP_LOCKED__) return;
 
-        if (!player || !player.duration) return showModal("MyRePlayTV", tr().NoVideo || STR.en.NoVideo);
-        if (marks.length === 0) return showModal("MyRePlayTV", tr().NeedMark || STR.en.NeedMark);
-        if ((player.duration || 0) > MAX_SECONDS + 0.5) return showModal("MyRePlayTV", tr().TooLong || STR.en.TooLong);
+    return await r.blob();
+  }
 
-        if (isUsageBlocked()) {
-          showModal(tr().UpgradeTitle || STR.en.UpgradeTitle, (tr().UsageBlocked || STR.en.UsageBlocked) + "\n\n" + (tr().UpgradeBody || STR.en.UpgradeBody));
+  // ---------- Generate button ----------
+  if (btnGenerate) {
+    btnGenerate.onclick = async (e) => {
+      e?.preventDefault?.(); e?.stopPropagation?.();
+      if (window.__MRP_LOCKED__) return;
+
+      if (!player || !player.duration) return showModal("MyRePlayTV", tr().NoVideo);
+      if (marks.length === 0) return showModal("MyRePlayTV", tr().NeedMark);
+      if ((player.duration || 0) > MAX_SECONDS + 0.5) return showModal("MyRePlayTV", tr().TooLong);
+
+      if (isUsageBlocked()) {
+        showModal(tr().UpgradeTitle, (tr().UsageBlocked) + "\n\n" + (tr().UpgradeBody));
+        return;
+      }
+
+      const mode = (modeSel?.value || "full");
+      const format = (formatSel?.value || "original");
+
+      try {
+        setLocked(true);
+        setStatus(tr().Gen);
+        clearGenerated();
+
+        const ok = await consumeOneExport();
+        await fetchUsage();
+        refreshUsageUI();
+
+        if (!ok) {
+          showModal(tr().UpgradeTitle, (tr().UsageBlocked) + "\n\n" + (tr().UpgradeBody));
+          setStatus(tr().Ready);
           return;
         }
 
-        const mode = (modeSel?.value || "full");
+        setStatus("Auto-syncing marks…");
+        const sorted = marks.slice().sort((a, b) => a - b);
+        const savedT = player.currentTime || 0;
 
-        try {
-          setLocked(true);
-          setStatus(tr().Gen || STR.en.Gen);
-
-          clearGenerated();
-
-          const ok = await consumeOneExport();
-          await fetchUsage();
-          refreshUsageUI();
-
-          if (!ok) {
-            showModal(tr().UpgradeTitle || STR.en.UpgradeTitle, (tr().UsageBlocked || STR.en.UsageBlocked) + "\n\n" + (tr().UpgradeBody || STR.en.UpgradeBody));
-            setStatus(tr().Ready || STR.en.Ready);
-            return;
-          }
-
-          const blob = await generateTV(mode);
-
-          generatedBlob = blob;
-          generatedMime = generatedMime || "video/webm";
-
-          if (generatedUrl) URL.revokeObjectURL(generatedUrl);
-          generatedUrl = URL.createObjectURL(blob);
-
-          if (btnPreviewGenerated) btnPreviewGenerated.disabled = false;
-          if (btnShareGenerated) btnShareGenerated.disabled = false;
-
-          // auto preview generated
-          player.pause();
-          player.srcObject = null;
-          player.playbackRate = 1;
-          player.src = generatedUrl;
-          player.controls = true;
-          player.load();
-          forceAudioOnForPreview();
-          forceInlineVideo();
-          await player.play().catch(() => {});
-
-          setStatus(tr().Done || STR.en.Done);
-        } catch (err) {
-          console.error(err);
-          showModal(tr().ExportError || STR.en.ExportError, String(err?.message || err || "Try shorter video or fewer marks."));
-          setStatus(tr().Ready || STR.en.Ready);
-        } finally {
-          setLocked(false);
-          enableControls(!!originalUrl);
-          refreshUsageUI();
+        const items = [];
+        for (const m of sorted) {
+          const slowStart = await findPeak(m);
+          items.push({ mark: m, slowStart });
         }
-      };
-    }
 
-    // ---------- Start ----------
-    (async function init() {
-      enableControls(false);
-      renderMarks();
-      setStatus(tr().Ready || STR.en.Ready);
-      forceInlineVideo();
-      updateBadges();
-      applyLang();
+        player.currentTime = clamp(savedT, 0, player.duration);
+        await waitSeek();
 
-      await fetchUsage();
-      refreshUsageUI();
+        setStatus("FFmpeg rendering…");
+        const blob = await backendGenerate({ mode, format, items });
 
-      // Se tiver vídeo já no player por algum motivo, libera
-      if (player?.src) enableControls(true);
-    })();
+        generatedBlob = blob;
+        if (generatedUrl) URL.revokeObjectURL(generatedUrl);
+        generatedUrl = URL.createObjectURL(blob);
 
-  })(); // end IIFE
+        if (btnPreviewGenerated) btnPreviewGenerated.disabled = false;
+        if (btnShareGenerated) btnShareGenerated.disabled = false;
+
+        // auto preview
+        player.pause();
+        player.srcObject = null;
+        player.playbackRate = 1;
+        player.src = generatedUrl;
+        player.controls = true;
+        player.load();
+        forceAudioOnForPreview();
+        forceInlineVideo();
+        await player.play().catch(() => {});
+
+        setStatus(tr().Done);
+      } catch (err) {
+        console.error(err);
+        showModal(tr().ExportError, String(err?.message || err || "Try shorter video or fewer marks."));
+        setStatus(tr().Ready);
+      } finally {
+        setLocked(false);
+        enableControls(!!originalUrl);
+        refreshUsageUI();
+      }
+    };
+  }
+
+  // ---------- Start ----------
+  (async function init() {
+    enableControls(false);
+    renderMarks();
+    forceInlineVideo();
+
+    applyLang();
+    updateBadges();
+    setStatus(tr().Ready);
+
+    await fetchUsage();
+    refreshUsageUI();
+
+    if (player?.src) enableControls(true);
+  })();
+})();

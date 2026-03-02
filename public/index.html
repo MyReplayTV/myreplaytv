@@ -2,115 +2,109 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>MyRePlayTV</title>
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="style.css" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
 </head>
+
 <body>
   <div class="app">
     <header class="top">
       <div class="brand">
-        <div class="logo">MR</div>
+        <div class="logo">MRP</div>
         <div class="titles">
           <div class="name">MyRePlayTV</div>
           <div id="tagline" class="tagline">TV-style replays in seconds</div>
         </div>
       </div>
 
-      <div class="topRight">
-        <select id="langSel" class="select">
-          <option value="en" selected>EN</option>
-          <option value="pt">PT</option>
-          <option value="el">GR</option>
-          <option value="es">ES</option>
-          <option value="it">IT</option>
-        </select>
-      </div>
+      <select id="langSel" class="select">
+        <option value="en">EN</option>
+        <option value="pt" selected>PT</option>
+        <option value="el">EL</option>
+        <option value="es">ES</option>
+        <option value="it">IT</option>
+      </select>
     </header>
 
-    <main class="grid">
-      <section class="card playerCard">
+    <main class="main">
+      <section class="videoCard">
         <div id="videoWrap" class="videoWrap">
-          <video id="player" playsinline webkit-playsinline controls></video>
-
-          <button id="recBtn" class="recBtn" style="display:none">● REC</button>
+          <video id="player" class="player" playsinline webkit-playsinline></video>
 
           <div id="lockOverlay" class="lockOverlay" style="display:none">
             <div class="lockBox">
               <div id="lockTitle" class="lockTitle">Generating…</div>
               <div id="lockSub" class="lockSub">Do not touch the video while processing</div>
-              <div class="spinner"></div>
             </div>
+          </div>
+
+          <button id="recBtn" class="recBtn" type="button" style="display:none">● REC</button>
+        </div>
+
+        <div class="statusRow">
+          <div id="status" class="status">Ready.</div>
+          <div id="usageLine" class="usage">Free demo: loading…</div>
+        </div>
+
+        <div class="controls">
+          <div class="row">
+            <button id="btnUpload" class="btn" type="button">Import</button>
+            <button id="btnCam" class="btn" type="button">Camera</button>
+            <button id="btnGenerate" class="btn primary" type="button">Generate</button>
+          </div>
+
+          <div class="row">
+            <button id="btnMark" class="btn" type="button">⭐ Mark</button>
+            <button id="btnClear" class="btn ghost" type="button">Clear</button>
+            <button id="btnDelete" class="btn danger" type="button">Reset</button>
+          </div>
+
+          <div class="row">
+            <button id="leadBtn" class="btn badge" type="button">↩︎ 3s</button>
+            <button id="repBtn" class="btn badge" type="button">⟲ 1×</button>
+            <button id="musicBtn" class="btn badge" type="button">♪ Music: Off</button>
+          </div>
+
+          <div class="row">
+            <select id="modeSel" class="select">
+              <option value="full" selected>Original + Replays</option>
+              <option value="replays">Replays only</option>
+            </select>
+
+            <select id="formatSel" class="select">
+              <option value="original" selected>Original</option>
+              <option value="vertical">Vertical 9:16</option>
+            </select>
+          </div>
+
+          <div class="row">
+            <button id="btnPreviewOriginal" class="btn ghost" type="button">Preview Original</button>
+            <button id="btnPreviewGenerated" class="btn ghost" type="button" disabled>Preview Generated</button>
+          </div>
+
+          <div class="row">
+            <button id="btnShareOriginal" class="btn ghost" type="button">Share original</button>
+            <button id="btnShareGenerated" class="btn ghost" type="button" disabled>Share generated</button>
           </div>
         </div>
 
-        <div class="primaryRow">
-          <button id="btnMark" type="button" class="btn primary big">⭐ Mark</button>
-          <button id="btnGenerate" type="button" class="btn accent big">Generate</button>
+        <div class="hint">
+          <div id="hintText">Tip: Play the video, tap ⭐ Mark right after the moment. The app auto-syncs the motion peak.</div>
         </div>
 
-        <div class="row">
-          <button id="btnUpload" type="button" class="btn">Import video</button>
-          <button id="btnCam" type="button" class="btn">Camera</button>
-
-          <button id="btnPreviewOriginal" type="button" class="btn ghost">Preview original</button>
-          <button id="btnPreviewGenerated" type="button" class="btn ghost" disabled>Preview generated</button>
-        </div>
-
-        <div class="row">
-          <button id="leadBtn" type="button" class="btn small">↩︎ 3s</button>
-          <button id="repBtn" type="button" class="btn small">⟲ 1×</button>
-
-          <select id="formatSel" class="select">
-            <option value="original" selected>Original</option>
-            <option value="vertical">Vertical 9:16</option>
-          </select>
-
-          <select id="modeSel" class="select">
-            <option value="full" selected>Original + Replays</option>
-            <option value="replays">Replays only</option>
-          </select>
-
-          <button id="musicBtn" type="button" class="btn small">♪ Music: Off</button>
-          <input id="musicInput" type="file" accept="audio/*" style="display:none" />
-        </div>
-
-        <!-- ✅ SHARE -->
-        <div class="row">
-          <button id="btnShareOriginal" type="button" class="btn ghost" disabled>Share original</button>
-          <button id="btnShareGenerated" type="button" class="btn" disabled>Share generated</button>
-        </div>
-
-        <div class="row">
-          <button id="btnClear" type="button" class="btn dangerGhost">Clear marks</button>
-          <button id="btnDelete" type="button" class="btn danger">Reset</button>
-        </div>
-
-        <div id="status" class="status">Ready. Import or Camera.</div>
-        <div id="usageLine" class="hint" style="text-align:center;opacity:.86;margin-top:6px;font-size:12px;">
-          Free demo: usage counter loading…
-        </div>
-
-        <div id="hintText" class="hint">
-          Tip: Play the video, tap ⭐ Mark right after the moment. The app auto-syncs the motion peak.
-        </div>
-
-        <input id="fileInput" type="file" accept="video/*" style="display:none" />
+        <input id="fileInput" type="file" accept="video/*" hidden />
+        <input id="musicInput" type="file" accept="audio/*" hidden />
       </section>
 
-      <section class="card marksCard">
+      <section class="marksCard">
         <div class="marksHeader">
           <div id="marksTitle" class="marksTitle">Marks</div>
         </div>
         <div id="marksList" class="marksList"></div>
       </section>
     </main>
-
-    <footer class="foot">
-      <div class="pill">
-        <b>FREE DEMO</b> — Watermark ON
-      </div>
-    </footer>
   </div>
 
   <!-- Modal -->
@@ -118,10 +112,10 @@
     <div class="modal">
       <div id="mTitle" class="mTitle">MyRePlayTV</div>
       <div id="mBody" class="mBody">…</div>
-      <button id="mOk" type="button" class="btn accent">OK</button>
+      <button id="mOk" class="btn primary" type="button">OK</button>
     </div>
   </div>
 
-  <script src="./app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
